@@ -8,5 +8,7 @@ export function useAlbumSave(state, role) {
     const s = score(state);
     if (!s.win) return;
     addToAlbum({ key: `${state.seed}`, at: Date.now(), board: state.board, role, full: s.full });
+    // Save once per finished round, not on every state change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.phase, state?.seed]);
 }

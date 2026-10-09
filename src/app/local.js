@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Intro } from '../components/Intro';
@@ -14,10 +14,6 @@ export default function Local() {
   const viewer = state.turn;
   const view = `${state.round}:${viewer}`;
   useAlbumSave(state, 'both');
-
-  useEffect(() => {
-    if (state.phase === 'reveal') setSeen(null);
-  }, [state.phase]);
 
   const dispatch = (action) => setState((s) => reduce(s, viewer, action));
 
