@@ -1,24 +1,43 @@
 {
   "expo": {
-    "name": "twain",
+    "name": "Twain",
     "slug": "twain",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.lipurposefe.twain"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#f0ece4",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.lipurposefe.twain"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "Twain",
+      "themeColor": "#f0ece4",
+      "backgroundColor": "#f0ece4"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "twain",
+    "backgroundColor": "#f0ece4",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ae07bce4-7b06-4e5c-a174-c64e80195aa4"
+      }
+    },
+    "owner": "two-tone10"
   }
 }
