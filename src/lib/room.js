@@ -26,6 +26,7 @@ export function useRoom(code) {
   const [full, setFull] = useState(false);
   const [online, setOnline] = useState(false);
   const stateRef = useRef(null);
+  const pendingRef = useRef([]);
   const channelRef = useRef(null);
 
   useEffect(() => {
@@ -90,8 +91,15 @@ export function useRoom(code) {
           setFull(true);
           return;
         }
-        stateRef.current = payload;
-        setState(payload);
+        let next = payload;
+        pendingRef.current = pendingRef.current.filter((action) => {
+          const applied = reduce(next, 'b', action);
+          if (applied === next) return false;
+          next = applied;
+          return true;
+        });
+        stateRef.current = next;
+        setState(next);
         if (payload.guestId === me && hello) {
           clearInterval(hello);
           hello = null;
@@ -133,6 +141,7 @@ export function useRoom(code) {
         commit(reduce(cur, 'a', action));
       } else {
         const guess = reduce(cur, 'b', action);
+        if (guess !== cur && action.type !== 'say') pendingRef.current = [...pendingRef.current, action];
         stateRef.current = guess;
         setState(guess);
         channelRef.current?.send({ type: 'broadcast', event: 'intent', payload: { from: me, action } });

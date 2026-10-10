@@ -5,13 +5,19 @@ import { C, R, S, roleColor, serif } from '../lib/theme';
 import { cap } from './Pick';
 import { Button, Card, Eyebrow } from './ui';
 
+const mark = (ok) => (ok ? '✓' : '✗');
+
 function Player({ state, seat, name, read, partner }) {
-  const persp = state.picks[seat];
-  const color = roleColor(persp);
+  const start = state.picks[seat];
+  const end = state.now[seat];
+  const color = roleColor(end);
+  const mask = TILE[state.masks[seat]];
   return (
     <Card style={{ flex: 1, gap: 6 }}>
       <Eyebrow>{name}</Eyebrow>
-      <Text style={{ color, fontWeight: '800', fontSize: 16 }}>{ROLES[persp].name}</Text>
+      <Text style={{ color, fontWeight: '800', fontSize: 16 }}>{ROLES[end].name}</Text>
+      <Text style={styles.small}>{state.switched[seat] ? `Switched from ${ROLES[start].name}` : 'Stayed all day'}</Text>
+      <Text style={styles.small}>Mask: {mask.emoji} {mask.name}</Text>
       {state.goals[seat].map((g, i) => {
         const met = goalMet(g, state.board);
         return (
@@ -21,9 +27,8 @@ function Player({ state, seat, name, read, partner }) {
           </Text>
         );
       })}
-      <Text style={[styles.read, { color: read ? C.ink : C.muted }]}>
-        {read ? `Read ${partner} right` : `Misread ${partner}`}
-      </Text>
+      <Text style={styles.read}>Read {partner}: {read.n}/3</Text>
+      <Text style={styles.small}>Side {mark(read.side)} · Turn {mark(read.switched)} · Mask {mark(read.mask)}</Text>
     </Card>
   );
 }
@@ -32,8 +37,8 @@ function Player({ state, seat, name, read, partner }) {
 export function Reveal({ state, names, onAgain }) {
   const s = score(state);
   const title = s.full ? 'A full day.' : s.win ? 'A good Saturday.' : 'Not quite yet.';
-  const reads = Number(s.reads.a) + Number(s.reads.b);
-  const sub = `${reads === 2 ? 'You read each other.' : reads === 1 ? 'One read landed.' : 'Neither read landed.'} ${s.win ? 'Saved to your album.' : 'A good day needs 2 goals each.'}`;
+  const reads = s.reads.a.n + s.reads.b.n;
+  const sub = `Reads ${reads}/6. ${s.win ? 'Saved to your album.' : 'A good day needs 2 goals each.'}`;
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <Eyebrow>Saturday {state.game}</Eyebrow>
@@ -76,8 +81,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: serif, fontSize: 36, color: C.ink, fontWeight: '600' },
   sub: { fontSize: 15, color: C.muted, marginTop: -S.sm },
   row: { flexDirection: 'row', gap: S.sm },
+  small: { fontSize: 12, color: C.muted, fontWeight: '600' },
   goal: { fontSize: 14, color: C.muted, fontWeight: '600' },
-  read: { fontSize: 13, fontWeight: '800', marginTop: S.xs },
+  read: { fontSize: 13, fontWeight: '800', marginTop: S.xs, color: C.ink },
   slot: {
     flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: C.surface,
     borderRadius: R.md, borderWidth: 1, borderColor: C.border, padding: S.sm,

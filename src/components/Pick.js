@@ -28,7 +28,7 @@ export function Pick({ onPick, label, them }) {
       <Text style={styles.title}>Pick your side.</Text>
       <PerspectiveCards onPick={onPick} />
       <Text style={styles.small}>
-        {cap(them)} won’t see it. Five rounds to build a Saturday, then you each guess the other’s side.
+        {cap(them)} won’t see it. You’ll also get a Mask: one tile from the other side you secretly need. At the Turn you can switch sides. After five rounds, read {them}.
       </Text>
     </View>
   );

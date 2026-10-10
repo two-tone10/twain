@@ -1,100 +1,150 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newGame, reduce, score, goalMet, due, offerer, chooser, solvable, ROUNDS, GOALS_PER_SIDE } from './engine.mjs';
+import { newGame, reduce, score, goalMet, due, feasible, seenTiles, kindOf, ROUND_KIND, ROUNDS, GOALS_PER_SIDE, PICK_COUNT } from './engine.mjs';
 import { TILE, SLOTS } from './content.mjs';
 
 const pickBoth = (s, a, b) => reduce(reduce(s, 'a', { type: 'pick', perspective: a }), 'b', { type: 'pick', perspective: b });
 
-function playRounds(s, n = ROUNDS) {
-  for (let i = 0; i < n; i++) {
-    s = reduce(s, offerer(s), { type: 'offer', tiles: s.pool.slice(0, 2) });
-    s = reduce(s, chooser(s), { type: 'take', tile: s.offer[0] });
+// Plays whatever step is due with the first legal move. `turns` says who switches at the Turn.
+function step(s, turns = { a: false, b: false }) {
+  const [seat] = due(s);
+  switch (s.step) {
+    case 'offer': case 'show': return reduce(s, seat, { type: s.step, tiles: s.pool.slice(0, PICK_COUNT[s.step]) });
+    case 'take': case 'strike': return reduce(s, seat, { type: s.step, tile: s.offer[0] });
+    case 'place': return reduce(s, seat, { type: 'place', tile: s.offer.find((t) => t !== s.struck) });
+    case 'turn': return reduce(s, seat, { type: 'turn', switch: turns[seat] });
+    case 'blind': return reduce(s, seat, { type: 'blind', tile: s.pool[seat === 'a' ? 0 : 1] });
+    case 'cut': case 'fill': return reduce(s, seat, { type: s.step, tile: s.pool[0] });
+    default: throw new Error(s.step);
+  }
+}
+function playAll(s, turns) {
+  for (let i = 0; i < 40 && s.phase === 'play'; i++) {
+    const next = step(s, turns);
+    assert.notEqual(next, s, `stuck at round ${s.round} ${s.step}`);
+    s = next;
   }
   return s;
 }
 
-test('a game is five parts of one Saturday', () => {
+test('five rounds, each a different task, with the Turn in the middle', () => {
   assert.equal(SLOTS.length, 5);
   assert.equal(ROUNDS, 5);
+  assert.deepEqual(ROUND_KIND, ['offer', 'veto', 'turn', 'blind', 'last']);
 });
 
-test('picks are secret until both are in, and both can pick the same side', () => {
+test('picks are secret and locked; each player gets two side goals and one Mask from the other side', () => {
   let s = newGame(1);
-  assert.equal(s.phase, 'pick');
   assert.deepEqual(due(s), ['a', 'b']);
   s = reduce(s, 'a', { type: 'pick', perspective: 'savorer' });
-  assert.equal(s.phase, 'pick');
-  assert.deepEqual(due(s), ['b']);
-  assert.equal(reduce(s, 'a', { type: 'pick', perspective: 'steward' }).picks.a, 'savorer', 'pick is locked');
+  assert.equal(reduce(s, 'a', { type: 'pick', perspective: 'steward' }).picks.a, 'savorer');
   s = reduce(s, 'b', { type: 'pick', perspective: 'savorer' });
   assert.equal(s.phase, 'play');
-  assert.equal(s.goals.a.length, GOALS_PER_SIDE);
-  assert.equal(s.goals.b.length, GOALS_PER_SIDE);
-  for (const g of [...s.goals.a, ...s.goals.b]) assert.equal(g.side, 'delight');
+  for (const seat of ['a', 'b']) {
+    const g = s.goals[seat];
+    assert.equal(g.length, GOALS_PER_SIDE);
+    assert.deepEqual(g.map((x) => x.side), ['delight', 'delight', 'growth']);
+    assert.equal(g[2].kind, 'tile');
+    assert.equal(g[2].tile, s.masks[seat]);
+    assert.equal(TILE[s.masks[seat]].d.length, 0, 'a Mask reads purely as the other side');
+  }
 });
 
-test('every game gives three goals for any pair of picks, and a full day is reachable', () => {
-  for (let seed = 1; seed <= 400; seed++) {
+test('every deal is reachable for any pair of picks', () => {
+  for (let seed = 1; seed <= 300; seed++) {
     for (const [a, b] of [['savorer', 'steward'], ['savorer', 'savorer'], ['steward', 'steward']]) {
       const s = pickBoth(newGame(seed), a, b);
-      assert.equal(s.goals.a.length, 3, `seed ${seed}`);
-      assert.equal(s.goals.b.length, 3, `seed ${seed}`);
-      assert.equal(new Set(s.pool).size, 10);
+      assert.ok(feasible([...s.goals.a, ...s.goals.b], s.board, s.pool), `seed ${seed} ${a}/${b}`);
     }
   }
-  for (let seed = 1; seed <= 15; seed++) assert.ok(solvable(pickBoth(newGame(seed), 'savorer', 'steward')), `seed ${seed}`);
 });
 
-test('offerer and taker alternate each round, and only they can act', () => {
+test('only the right seat can act, and each step takes the right number of tiles', () => {
   let s = pickBoth(newGame(11), 'savorer', 'steward');
-  const first = offerer(s);
-  const second = chooser(s);
-  assert.equal(reduce(s, second, { type: 'offer', tiles: s.pool.slice(0, 2) }), s, 'not the offerer');
-  assert.equal(reduce(s, first, { type: 'offer', tiles: s.pool.slice(0, 1) }), s, 'must offer two');
-  s = reduce(s, first, { type: 'offer', tiles: s.pool.slice(0, 2) });
-  assert.equal(s.step, 'choose');
-  assert.equal(reduce(s, first, { type: 'take', tile: s.offer[0] }), s, 'offerer cannot take');
-  assert.equal(reduce(s, second, { type: 'take', tile: s.pool[5] }), s, 'must take an offered tile');
+  const lead = s.first;
+  const other = lead === 'a' ? 'b' : 'a';
+  assert.equal(kindOf(s), 'offer');
+  assert.deepEqual(due(s), [lead]);
+  assert.equal(reduce(s, other, { type: 'offer', tiles: s.pool.slice(0, 2) }), s);
+  assert.equal(reduce(s, lead, { type: 'offer', tiles: s.pool.slice(0, 3) }), s);
+  s = reduce(s, lead, { type: 'offer', tiles: s.pool.slice(0, 2) });
+  assert.equal(reduce(s, lead, { type: 'take', tile: s.offer[0] }), s);
   const [took, left] = s.offer;
-  s = reduce(s, second, { type: 'take', tile: took });
+  s = reduce(s, other, { type: 'take', tile: took });
   assert.equal(s.board[0], took);
-  assert.ok(!s.pool.includes(took));
-  assert.ok(s.pool.includes(left), 'the passed-over tile goes back');
-  assert.equal(s.round, 2);
-  assert.equal(offerer(s), second);
-  assert.equal(s.history[0].took, took);
+  assert.ok(s.pool.includes(left));
+
+  assert.equal(kindOf(s), 'veto');
+  assert.equal(reduce(s, lead, { type: 'show', tiles: s.pool.slice(0, 2) }), s, 'veto shows three');
+  s = reduce(s, lead, { type: 'show', tiles: s.pool.slice(0, 3) });
+  s = reduce(s, other, { type: 'strike', tile: s.offer[0] });
+  assert.equal(reduce(s, lead, { type: 'place', tile: s.struck }), s, 'cannot place the struck tile');
+  s = reduce(s, lead, { type: 'place', tile: s.offer[1] });
+  assert.equal(s.history[1].struck, s.history[1].shown[0]);
+
+  assert.equal(s.step, 'turn');
+  assert.deepEqual(due(s), ['a', 'b']);
 });
 
-test('after round five both players guess, then the day is revealed', () => {
-  let s = playRounds(pickBoth(newGame(5), 'steward', 'savorer'));
+test('switching at the Turn flips your side, deals new goals and a new Mask, and stays hidden from clues', () => {
+  for (let seed = 1; seed <= 60; seed++) {
+    let s = pickBoth(newGame(seed), 'savorer', 'steward');
+    while (s.step !== 'turn') s = step(s);
+    s = reduce(s, 'a', { type: 'turn', switch: true });
+    assert.equal(s.now.a, 'savorer', 'nothing changes until both decide');
+    s = reduce(s, 'b', { type: 'turn', switch: false });
+    assert.equal(s.now.a, 'steward');
+    assert.equal(s.now.b, 'steward');
+    assert.deepEqual(s.goals.a.map((g) => g.side), ['growth', 'growth', 'delight']);
+    assert.equal(TILE[s.masks.a].g.length, 0, `seed ${seed}: new Mask is from the side you left`);
+    assert.ok(s.pool.includes(s.masks.a));
+    assert.ok(feasible(s.goals.a, s.board, s.pool), `seed ${seed}: new goals reachable`);
+    assert.equal(s.step, 'offer');
+    assert.ok(!JSON.stringify(s.history).includes('switch'));
+  }
+});
+
+test('blind round places a match, or one of the two picks', () => {
+  let s = pickBoth(newGame(5), 'steward', 'steward');
+  while (s.step !== 'blind') s = step(s);
+  const t = s.pool[2];
+  const m = reduce(reduce(s, 'a', { type: 'blind', tile: t }), 'b', { type: 'blind', tile: t });
+  assert.equal(m.board[3], t);
+  assert.equal(m.history[3].sync, true);
+  const x = reduce(reduce(s, 'a', { type: 'blind', tile: s.pool[0] }), 'b', { type: 'blind', tile: s.pool[1] });
+  assert.ok([s.pool[0], s.pool[1]].includes(x.board[3]));
+  assert.equal(x.history[3].sync, false);
+});
+
+test('last call cuts a tile for good before Night is filled, then both read each other', () => {
+  let s = playAll(pickBoth(newGame(9), 'savorer', 'steward'), { a: true, b: false });
   assert.equal(s.phase, 'guess');
   assert.ok(s.board.every(Boolean));
-  assert.equal(s.history.length, 5);
-  s = reduce(s, 'a', { type: 'guess', perspective: 'savorer' });
+  const last = s.history[4];
+  assert.ok(last.cut && !s.pool.includes(last.cut) && !s.board.includes(last.cut));
+
+  assert.equal(reduce(s, 'a', { type: 'guess', side: 'steward', switched: false, mask: 'nope' }), s, 'mask must be a seen tile or none');
+  const bMask = seenTiles(s).includes(s.masks.b) ? s.masks.b : 'none';
+  s = reduce(s, 'a', { type: 'guess', side: s.now.b, switched: false, mask: bMask });
   assert.equal(s.phase, 'guess');
-  s = reduce(s, 'b', { type: 'guess', perspective: 'savorer' });
+  assert.deepEqual(due(s), ['b']);
+  s = reduce(s, 'b', { type: 'guess', side: 'savorer', switched: false, mask: 'none' });
   assert.equal(s.phase, 'reveal');
   const r = score(s);
-  assert.equal(r.reads.a, true);
-  assert.equal(r.reads.b, false);
-  assert.equal(r.value, Math.min(r.a, r.b));
+  assert.deepEqual(r.reads.a, { side: true, switched: true, mask: true, n: 3 });
+  assert.equal(r.reads.b.side, false, 'a switched to steward');
+  assert.equal(r.reads.b.switched, false);
+  const again = reduce(s, 'b', { type: 'again' });
+  assert.equal(again.phase, 'pick');
+  assert.equal(again.game, 2);
+  assert.deepEqual(again.switched, { a: null, b: null });
 });
 
-test('play again starts a fresh pick with the same partner', () => {
-  let s = playRounds(pickBoth(newGame(42, { guestId: 'g' }), 'savorer', 'steward'));
-  s = reduce(reduce(s, 'a', { type: 'guess', perspective: 'steward' }), 'b', { type: 'guess', perspective: 'savorer' });
-  s = reduce(s, 'b', { type: 'again' });
-  assert.equal(s.phase, 'pick');
-  assert.equal(s.game, 2);
-  assert.equal(s.guestId, 'g');
-  assert.deepEqual(s.picks, { a: null, b: null });
-});
-
-test('goal predicates', () => {
-  const board = ['coffee', 'bread', 'call', 'dinner', 'sunset'];
+test('goal predicates read the board', () => {
+  const board = ['coffee', 'guitar', 'garden', 'dinner', 'sunset'];
   assert.ok(goalMet({ side: 'delight', kind: 'start', tag: 'warm' }, board));
   assert.ok(goalMet({ side: 'delight', kind: 'end', tag: 'beauty' }, board));
-  assert.ok(goalMet({ side: 'growth', kind: 'count', tag: 'care', n: 3 }, board));
-  assert.ok(!goalMet({ side: 'growth', kind: 'early', tag: 'roots' }, board));
-  assert.ok(TILE.bread.d.length && TILE.bread.g.length);
+  assert.ok(goalMet({ side: 'growth', kind: 'early', tag: 'craft' }, board));
+  assert.ok(goalMet({ side: 'growth', kind: 'tile', tile: 'garden' }, board));
+  assert.ok(!goalMet({ side: 'growth', kind: 'tile', tile: 'call' }, board));
 });
