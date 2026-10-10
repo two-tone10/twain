@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { Platform, Share, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Intro } from '../../components/Intro';
+import { Guess } from '../../components/Guess';
+import { Pick, Waiting } from '../../components/Pick';
 import { Reveal } from '../../components/Reveal';
 import { Table } from '../../components/Table';
 import { Button, Eyebrow } from '../../components/ui';
@@ -24,9 +24,9 @@ export default function Room() {
   const { code: raw } = useLocalSearchParams();
   const code = String(raw || '').toUpperCase();
   const room = useRoom(code);
-  const { state, role } = room;
-  const [seen, setSeen] = useState(0);
-  useAlbumSave(state, role);
+  const { state, seat } = room;
+  const them = 'your partner';
+  useAlbumSave(state, seat);
 
   let body;
   if (!room.configured) {
@@ -61,11 +61,16 @@ export default function Room() {
       </Center>
     );
   } else if (state.phase === 'reveal') {
-    body = <Reveal state={state} onNext={() => room.dispatch({ type: 'next' })} />;
-  } else if (seen !== state.round) {
-    body = <Intro role={role} round={state.round} onGo={() => setSeen(state.round)} />;
+    const names = seat === 'a' ? { a: 'you', b: them } : { a: them, b: 'you' };
+    body = <Reveal state={state} names={names} onAgain={() => room.dispatch({ type: 'again' })} />;
+  } else if (state.phase === 'pick') {
+    body = state.picks[seat]
+      ? <Waiting perspective={state.picks[seat]} title={`Waiting for ${them} to pick…`} />
+      : <Pick them={them} onPick={(p) => room.dispatch({ type: 'pick', perspective: p })} />;
+  } else if (state.phase === 'guess') {
+    body = <Guess state={state} seat={seat} dispatch={room.dispatch} them={them} />;
   } else {
-    body = <Table state={state} role={role} dispatch={room.dispatch} partnerHere={room.partnerHere} />;
+    body = <Table state={state} seat={seat} dispatch={room.dispatch} partnerHere={room.partnerHere} them={them} />;
   }
 
   return <SafeAreaView style={styles.safe}>{body}</SafeAreaView>;

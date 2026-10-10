@@ -1,62 +1,77 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { OTHER, PHRASES, ROLES, SLOTS, TAG_LABEL, TILE } from '../game/content.mjs';
-import { canFinish, goalMet } from '../game/engine.mjs';
+import { PHRASES, ROLES, SLOTS, TAG_LABEL, TILE } from '../game/content.mjs';
+import { OFFER_SIZE, ROUNDS, chooser, goalMet, offerer } from '../game/engine.mjs';
 import { C, R, S, roleColor, roleTint } from '../lib/theme';
+import { Clues } from './Clues';
+import { cap } from './Pick';
 import { Button, Eyebrow } from './ui';
 
-const sideKey = (role) => (role === 'savorer' ? 'd' : 'g');
-
-function Tags({ id, role }) {
-  const tags = TILE[id][sideKey(role)];
+function Tags({ id, side }) {
+  const tags = TILE[id][side];
   if (!tags.length) return <Text style={[styles.tags, { color: C.muted }]}>—</Text>;
-  return <Text style={[styles.tags, { color: roleColor(role) }]}>{tags.map((t) => TAG_LABEL[t]).join(' · ')}</Text>;
+  return <Text style={[styles.tags, { color: side === 'd' ? C.savorer : C.steward }]}>{tags.map((t) => TAG_LABEL[t]).join(' · ')}</Text>;
 }
 
-function Marks({ marks, role }) {
-  const other = OTHER[role];
-  if (!marks?.[other]) return null;
-  return <Text style={[styles.partnerMark, { color: roleColor(other) }]}>{ROLES[other].mark}</Text>;
-}
+export function Table({ state, seat, dispatch, partnerHere = true, them }) {
+  const [picked, setPicked] = useState([]);
+  const persp = state.picks[seat];
+  const side = ROLES[persp].side === 'delight' ? 'd' : 'g';
+  const color = roleColor(persp);
+  const slot = SLOTS[state.round - 1];
+  const offering = state.step === 'offer' && offerer(state) === seat;
+  const taking = state.step === 'choose' && chooser(state) === seat;
+  const heard = useMemo(() => [...state.said].reverse().find((m) => m.seat !== seat), [state.said, seat]);
 
-export function Table({ state, role, dispatch, partnerHere = true, local }) {
-  const [picked, setPicked] = useState(null);
-  const other = OTHER[role];
-  const myTurn = state.turn === role;
-  const color = roleColor(role);
-  const heard = useMemo(() => [...state.said].reverse().find((m) => m.role === other), [state.said, other]);
-  const ready = state.ready[role];
-  const finishable = canFinish(state);
-
-  const place = (slot) => {
-    if (!picked || !myTurn) return;
-    dispatch({ type: 'place', tile: picked, slot });
-    setPicked(null);
+  const toggle = (id) => {
+    if (!offering) return;
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-OFFER_SIZE)));
   };
+  const send = () => {
+    dispatch({ type: 'offer', tiles: picked });
+    setPicked([]);
+  };
+
+  let task;
+  if (!partnerHere) task = `Waiting for ${them}…`;
+  else if (offering) task = picked.length < OFFER_SIZE ? `Offer two tiles for ${slot.toLowerCase()}` : 'Send your offer';
+  else if (taking) task = `Take one for ${slot.toLowerCase()}`;
+  else if (state.step === 'offer') task = `${cap(them)} is picking two to offer`;
+  else task = `${cap(them)} is taking one`;
+  const active = partnerHere && (offering || taking);
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.top}>
-        <View style={[styles.chip, { backgroundColor: roleTint(role) }]}>
-          <Text style={[styles.chipText, { color }]}>{ROLES[role].name}</Text>
+        <View style={[styles.chip, { backgroundColor: roleTint(persp) }]}>
+          <Text style={[styles.chipText, { color }]}>{ROLES[persp].name}</Text>
         </View>
-        <Text style={styles.meta}>
-          Round {state.round} · {state.movesLeft} moves
-        </Text>
+        <Text style={styles.meta}>Round {state.round} of {ROUNDS}</Text>
       </View>
 
-      <Text style={[styles.turn, { color: myTurn ? color : C.muted }]}>
-        {!partnerHere && !local
-          ? 'Waiting for your partner…'
-          : myTurn
-            ? picked
-              ? 'Tap a time to place it'
-              : 'Your move: pick a tile'
-            : `${ROLES[other].name} is moving`}
-      </Text>
+      <Text style={[styles.task, { color: active ? color : C.muted }]}>{task}</Text>
+
+      {state.offer.length ? (
+        <View style={styles.offer}>
+          {state.offer.map((id) => (
+            <Pressable
+              key={id}
+              testID={`offer-${id}`}
+              accessibilityRole="button"
+              disabled={!taking}
+              onPress={() => dispatch({ type: 'take', tile: id })}
+              style={[styles.offerTile, taking && { borderColor: color }]}
+            >
+              <Text style={styles.bigEmoji}>{TILE[id].emoji}</Text>
+              <Text style={styles.tileName} numberOfLines={2}>{TILE[id].name}</Text>
+              <Tags id={id} side={side} />
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.goals}>
-        {state.goals[role].map((g, i) => {
+        {state.goals[seat].map((g, i) => {
           const met = goalMet(g, state.board);
           return (
             <View key={i} style={styles.goal}>
@@ -68,8 +83,8 @@ export function Table({ state, role, dispatch, partnerHere = true, local }) {
       </View>
 
       {heard ? (
-        <View style={[styles.heard, { backgroundColor: roleTint(other) }]}>
-          <Text style={[styles.heardWho, { color: roleColor(other) }]}>{ROLES[other].name}</Text>
+        <View style={styles.heard}>
+          <Text style={styles.heardWho}>{cap(them)}</Text>
           <Text style={styles.heardText}>“{heard.text}”</Text>
         </View>
       ) : null}
@@ -78,27 +93,22 @@ export function Table({ state, role, dispatch, partnerHere = true, local }) {
       <View style={styles.board}>
         {SLOTS.map((label, i) => {
           const id = state.board[i];
-          const target = picked && myTurn;
+          const now = i === state.round - 1 && !id;
           return (
-            <Pressable
-              key={label}
-              onPress={() => place(i)}
-              style={[styles.slot, target && { borderColor: color, borderStyle: 'dashed' }]}
-            >
-              <Text style={styles.slotLabel}>{label}</Text>
+            <View key={label} style={[styles.slot, now && { borderColor: color, borderStyle: 'dashed' }]}>
+              <Text style={[styles.slotLabel, now && { color }]}>{label}</Text>
               {id ? (
                 <View style={styles.slotTile}>
                   <Text style={styles.emoji}>{TILE[id].emoji}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.tileName} numberOfLines={1}>{TILE[id].name}</Text>
-                    <Tags id={id} role={role} />
+                    <Tags id={id} side={side} />
                   </View>
-                  <Marks marks={state.marks[id]} role={role} />
                 </View>
               ) : (
-                <Text style={styles.empty}>{target ? 'place here' : ' '}</Text>
+                <Text style={styles.empty}>{now ? 'this round' : ' '}</Text>
               )}
-            </Pressable>
+            </View>
           );
         })}
       </View>
@@ -106,100 +116,84 @@ export function Table({ state, role, dispatch, partnerHere = true, local }) {
       <Eyebrow>Tiles</Eyebrow>
       <View style={styles.pool}>
         {state.pool.map((id) => {
-          const sel = picked === id;
-          const mine = state.marks[id]?.[role];
+          const sel = picked.includes(id);
+          const out = state.offer.includes(id);
           return (
             <Pressable
               key={id}
-              onPress={() => setPicked(sel ? null : id)}
-              style={[styles.tile, sel && { borderColor: color, backgroundColor: roleTint(role) }]}
+              testID={`tile-${id}`}
+              disabled={!offering}
+              onPress={() => toggle(id)}
+              style={[styles.tile, sel && { borderColor: color, backgroundColor: roleTint(persp) }, out && { opacity: 0.4 }]}
             >
-              <View style={styles.tileHead}>
-                <Text style={styles.emoji}>{TILE[id].emoji}</Text>
-                <Marks marks={state.marks[id]} role={role} />
-                <Pressable
-                  hitSlop={10}
-                  accessibilityLabel={`Signal ${TILE[id].name}`}
-                  onPress={() => dispatch({ type: 'mark', tile: id })}
-                  style={[styles.markBtn, mine && { backgroundColor: color, borderColor: color }]}
-                >
-                  <Text style={[styles.markText, { color: mine ? C.surface : color }]}>{ROLES[role].mark}</Text>
-                </Pressable>
-              </View>
+              <Text style={styles.emoji}>{TILE[id].emoji}</Text>
               <Text style={styles.tileName} numberOfLines={2}>{TILE[id].name}</Text>
-              <Tags id={id} role={role} />
+              <Tags id={id} side={side} />
             </Pressable>
           );
         })}
       </View>
 
+      {offering ? (
+        <Button label="Offer these two" color={color} disabled={picked.length !== OFFER_SIZE || !partnerHere} onPress={send} />
+      ) : null}
+
       <Eyebrow>Say</Eyebrow>
       <View style={styles.phrases}>
-        {PHRASES[role].map((p) => (
-          <Pressable key={p} onPress={() => dispatch({ type: 'say', text: p })} style={[styles.phrase, { borderColor: color }]}>
-            <Text style={[styles.phraseText, { color }]}>{p}</Text>
+        {PHRASES.map((p) => (
+          <Pressable key={p} onPress={() => dispatch({ type: 'say', text: p })} style={styles.phrase}>
+            <Text style={styles.phraseText}>{p}</Text>
           </Pressable>
         ))}
       </View>
 
-      <View style={styles.footer}>
-        <Button label="Pass" outline color={C.muted} disabled={!myTurn} onPress={() => dispatch({ type: 'pass' })} style={{ flex: 1 }} />
-        <Button
-          label={local ? 'We’re set' : ready ? 'Waiting…' : 'We’re set'}
-          color={color}
-          disabled={!finishable}
-          onPress={() => dispatch({ type: 'ready', both: local })}
-          style={{ flex: 2 }}
-        />
-      </View>
-      {!local && state.ready[other] && !ready ? (
-        <Text style={styles.hint}>{ROLES[other].name} is set.</Text>
+      {state.history.length ? (
+        <>
+          <Eyebrow>Clues so far</Eyebrow>
+          <Clues state={state} seat={seat} them={them} />
+        </>
       ) : null}
-      {!finishable ? <Text style={styles.hint}>Fill every time to finish.</Text> : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: S.md, paddingBottom: S.xl * 2, gap: S.sm, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  scroll: { padding: S.md, gap: S.sm, paddingBottom: S.xl * 2, maxWidth: 560, width: '100%', alignSelf: 'center' },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chip: { borderRadius: R.full, paddingVertical: 6, paddingHorizontal: S.md },
+  chip: { borderRadius: R.full, paddingVertical: 6, paddingHorizontal: 12 },
   chipText: { fontWeight: '800', fontSize: 14 },
   meta: { color: C.muted, fontSize: 13, fontWeight: '600' },
-  turn: { fontSize: 20, fontWeight: '800', marginTop: S.sm },
-  goals: { gap: 6, marginVertical: S.sm },
-  goal: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  dot: { fontSize: 16, width: 18 },
-  goalText: { fontSize: 16, color: C.ink, fontWeight: '600' },
-  heard: { borderRadius: R.lg, padding: S.md, marginBottom: S.sm },
-  heardWho: { fontSize: 12, fontWeight: '800' },
-  heardText: { fontSize: 16, color: C.ink, marginTop: 2 },
-  board: { gap: 6, marginBottom: S.md, marginTop: S.xs },
-  slot: {
-    flexDirection: 'row', alignItems: 'center', minHeight: 54, borderRadius: R.md,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface, paddingHorizontal: S.md,
+  task: { fontSize: 20, fontWeight: '800', marginVertical: S.xs },
+  offer: { flexDirection: 'row', gap: S.sm },
+  offerTile: {
+    flex: 1, borderRadius: R.lg, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface,
+    padding: S.md, gap: 4, alignItems: 'flex-start',
   },
-  slotLabel: { width: 96, fontSize: 13, color: C.muted, fontWeight: '700' },
+  bigEmoji: { fontSize: 36 },
+  goals: { gap: 4, marginVertical: S.xs },
+  goal: { flexDirection: 'row', gap: S.sm, alignItems: 'center' },
+  dot: { fontSize: 14 },
+  goalText: { fontSize: 15, color: C.ink, fontWeight: '600' },
+  heard: { borderRadius: R.md, padding: S.sm, backgroundColor: C.surface2, flexDirection: 'row', gap: S.sm, alignItems: 'center' },
+  heardWho: { fontWeight: '800', fontSize: 13, color: C.ink },
+  heardText: { fontSize: 15, color: C.ink, fontStyle: 'italic' },
+  board: { gap: 6, marginTop: S.xs, marginBottom: S.sm },
+  slot: {
+    flexDirection: 'row', alignItems: 'center', minHeight: 52, borderRadius: R.md, borderWidth: 1.5,
+    borderColor: C.border, backgroundColor: C.surface, paddingHorizontal: S.sm, gap: S.sm,
+  },
+  slotLabel: { width: 76, fontSize: 12, color: C.muted, fontWeight: '700' },
   slotTile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm },
   empty: { color: C.muted, fontSize: 13 },
-  pool: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, marginBottom: S.md, marginTop: S.xs },
+  pool: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, marginBottom: S.sm, marginTop: S.xs },
   tile: {
     width: '48.5%', borderRadius: R.md, borderWidth: 1.5, borderColor: C.border,
     backgroundColor: C.surface, padding: S.sm + 2, gap: 2,
   },
-  tileHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   emoji: { fontSize: 24 },
   tileName: { fontSize: 14, fontWeight: '700', color: C.ink },
   tags: { fontSize: 12, fontWeight: '700' },
-  partnerMark: { fontSize: 18, fontWeight: '800' },
-  markBtn: {
-    marginLeft: 'auto', width: 30, height: 30, borderRadius: R.full, borderWidth: 1.5,
-    borderColor: C.border, alignItems: 'center', justifyContent: 'center',
-  },
-  markText: { fontSize: 15, fontWeight: '800' },
-  phrases: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, marginBottom: S.md, marginTop: S.xs },
-  phrase: { borderRadius: R.full, borderWidth: 1.5, paddingVertical: 7, paddingHorizontal: 12 },
-  phraseText: { fontSize: 14, fontWeight: '600' },
-  footer: { flexDirection: 'row', gap: S.sm, marginTop: S.sm },
-  hint: { textAlign: 'center', color: C.muted, fontSize: 13, marginTop: S.xs },
+  phrases: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, marginBottom: S.sm, marginTop: S.xs },
+  phrase: { borderRadius: R.full, borderWidth: 1.5, borderColor: C.ink, paddingVertical: 7, paddingHorizontal: 12 },
+  phraseText: { fontSize: 14, fontWeight: '600', color: C.ink },
 });

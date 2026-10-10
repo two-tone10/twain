@@ -1,8 +1,10 @@
-import { SLOTS, TILES, TILE, TAGS, OTHER } from './content.mjs';
+import { SLOTS, TILES, TILE, TAGS, ROLES, PERSPECTIVES, OTHER_SEAT } from './content.mjs';
 
-export const MOVES = 10;
+export const ROUNDS = SLOTS.length;
 export const GOALS_PER_SIDE = 3;
-const POOL_SIZE = 12;
+export const OFFER_SIZE = 2;
+const POOL_SIZE = 10;
+const LAST = SLOTS.length - 1;
 
 export function rng(seed) {
   let a = seed >>> 0;
@@ -48,9 +50,9 @@ export function goalMet(goal, board) {
   const idx = SLOTS.map((_, i) => i);
   switch (goal.kind) {
     case 'count': return idx.filter(has).length >= goal.n;
-    case 'early': return [0, 1, 2].some(has);
-    case 'late': return [3, 4, 5].some(has);
-    case 'end': return has(5);
+    case 'early': return [0, 1].some(has);
+    case 'late': return [LAST - 1, LAST].some(has);
+    case 'end': return has(LAST);
     case 'start': return has(0);
     case 'variety': return new Set(board.flatMap((id) => tagsOf(id, goal.side))).size >= goal.n;
     default: return false;
@@ -63,9 +65,9 @@ function candidateGoals(side, target) {
     const at = target.map((id, i) => (tagsOf(id, side).includes(tag) ? i : -1)).filter((i) => i >= 0);
     if (!at.length) continue;
     if (at.length >= 2) out.push({ side, kind: 'count', tag, n: Math.min(at.length, 3) });
-    if (at.some((i) => i <= 2)) out.push({ side, kind: 'early', tag });
-    if (at.some((i) => i >= 3)) out.push({ side, kind: 'late', tag });
-    if (at.includes(5)) out.push({ side, kind: 'end', tag });
+    if (at.some((i) => i <= 1)) out.push({ side, kind: 'early', tag });
+    if (at.some((i) => i >= LAST - 1)) out.push({ side, kind: 'late', tag });
+    if (at.includes(LAST)) out.push({ side, kind: 'end', tag });
     if (at.includes(0)) out.push({ side, kind: 'start', tag });
   }
   const kinds = new Set(target.flatMap((id) => tagsOf(id, side))).size;
@@ -97,112 +99,132 @@ function drawDay(rand) {
   const deck = shuffle(TILES, rand);
   const both = deck.filter((t) => t.d.length && t.g.length).slice(0, 2);
   const rest = deck.filter((t) => !both.includes(t));
-  const chosen = shuffle([...both, ...rest.slice(0, 4)], rand).map((t) => t.id);
-  const decoys = rest.slice(4, 4 + POOL_SIZE - chosen.length).map((t) => t.id);
-  const goals = { savorer: pickGoals('delight', chosen, rand), steward: pickGoals('growth', chosen, rand) };
-  return { chosen, decoys, goals };
+  const target = shuffle([...both, ...rest.slice(0, SLOTS.length - both.length)], rand).map((t) => t.id);
+  const decoys = rest.slice(SLOTS.length - both.length, SLOTS.length - both.length + POOL_SIZE - target.length).map((t) => t.id);
+  return { target, decoys };
 }
 
-export function makeRound(seed, savorerStarts = true) {
+const enoughGoals = (target) =>
+  PERSPECTIVES.every((p) => candidateGoals(ROLES[p].side, target).length >= GOALS_PER_SIDE);
+
+// A game is one Saturday: both players secretly pick a perspective, play
+// five offer/take rounds (one per part of the day), then guess each other's pick.
+export function newGame(seed, extra = {}) {
   const rand = rng(seed);
   let day = drawDay(rand);
-  while (day.goals.savorer.length < GOALS_PER_SIDE || day.goals.steward.length < GOALS_PER_SIDE) {
-    day = drawDay(rand);
-  }
+  while (!enoughGoals(day.target)) day = drawDay(rand);
   return {
     seed,
-    pool: shuffle([...day.chosen, ...day.decoys], rand),
+    phase: 'pick',
+    picks: { a: null, b: null },
+    goals: { a: [], b: [] },
+    target: day.target,
+    pool: shuffle([...day.target, ...day.decoys], rand),
     board: SLOTS.map(() => null),
-    movesLeft: MOVES,
-    turn: savorerStarts ? 'savorer' : 'steward',
-    marks: {},
+    round: 1,
+    step: 'offer',
+    first: rand() < 0.5 ? 'a' : 'b',
+    offer: [],
+    history: [],
     said: [],
-    ready: { savorer: false, steward: false },
-    phase: 'play',
-    goals: day.goals,
+    guesses: { a: null, b: null },
+    guestId: null,
+    game: 1,
+    ...extra,
   };
 }
 
-export function newGame(seed) {
-  return { round: 1, ...makeRound(seed, true), hostRole: seed % 2 ? 'savorer' : 'steward', guestId: null };
+export const offerer = (state) => (state.round % 2 === 1 ? state.first : OTHER_SEAT[state.first]);
+export const chooser = (state) => OTHER_SEAT[offerer(state)];
+
+// Seats whose move it is right now.
+export function due(state) {
+  switch (state.phase) {
+    case 'pick': return ['a', 'b'].filter((s) => !state.picks[s]);
+    case 'play': return [state.step === 'offer' ? offerer(state) : chooser(state)];
+    case 'guess': return ['a', 'b'].filter((s) => !state.guesses[s]);
+    default: return [];
+  }
+}
+
+function goalsFor(state, seat) {
+  const salt = seat === 'a' ? 0x9e3779b9 : 0x85ebca6b;
+  return pickGoals(ROLES[state.picks[seat]].side, state.target, rng((state.seed ^ salt) >>> 0));
 }
 
 export function score(state) {
-  const delight = state.goals.savorer.filter((g) => goalMet(g, state.board)).length;
-  const growth = state.goals.steward.filter((g) => goalMet(g, state.board)).length;
-  const value = Math.min(delight, growth);
-  return { delight, growth, value, win: value >= 2, full: value === GOALS_PER_SIDE };
+  const met = (seat) => state.goals[seat].filter((g) => goalMet(g, state.board)).length;
+  const a = met('a');
+  const b = met('b');
+  const value = Math.min(a, b);
+  const reads = {
+    a: state.guesses.a != null && state.guesses.a === state.picks.b,
+    b: state.guesses.b != null && state.guesses.b === state.picks.a,
+  };
+  return { a, b, value, win: value >= 2, full: value === GOALS_PER_SIDE, reads };
 }
 
-export function boardFull(state) {
-  return state.board.every(Boolean);
-}
-
-export function canFinish(state) {
-  return boardFull(state) || state.movesLeft === 0;
-}
-
-const unready = { savorer: false, steward: false };
-
-export function reduce(state, role, action) {
-  if (!state || !role) return state;
-  if (action.type === 'next') {
-    if (state.phase !== 'reveal') return state;
-    const seed = (Math.imul(state.seed, 2654435761) + 1) >>> 0;
-    const round = state.round + 1;
-    return {
-      ...state,
-      ...makeRound(seed, round % 2 === 1),
-      round,
-      hostRole: OTHER[state.hostRole],
-    };
-  }
-  if (state.phase !== 'play') return state;
+export function reduce(state, seat, action) {
+  if (!state || (seat !== 'a' && seat !== 'b')) return state;
   switch (action.type) {
-    case 'place': {
-      const { tile, slot } = action;
-      if (state.turn !== role || state.movesLeft <= 0) return state;
-      if (!state.pool.includes(tile) || slot < 0 || slot >= SLOTS.length) return state;
-      const board = state.board.slice();
-      const bumped = board[slot];
-      board[slot] = tile;
-      const pool = state.pool.filter((id) => id !== tile);
-      if (bumped) pool.push(bumped);
-      return { ...state, board, pool, movesLeft: state.movesLeft - 1, turn: OTHER[role], ready: unready };
+    case 'again': {
+      if (state.phase !== 'reveal') return state;
+      const seed = (Math.imul(state.seed, 2654435761) + 1) >>> 0;
+      return newGame(seed, { guestId: state.guestId, game: state.game + 1 });
     }
-    case 'pass':
-      if (state.turn !== role) return state;
-      return { ...state, turn: OTHER[role] };
-    case 'mark': {
-      const cur = state.marks[action.tile] || {};
-      return { ...state, marks: { ...state.marks, [action.tile]: { ...cur, [role]: !cur[role] } } };
+    case 'pick': {
+      if (state.phase !== 'pick' || state.picks[seat] || !ROLES[action.perspective]) return state;
+      const next = { ...state, picks: { ...state.picks, [seat]: action.perspective } };
+      if (!next.picks.a || !next.picks.b) return next;
+      return { ...next, phase: 'play', goals: { a: goalsFor(next, 'a'), b: goalsFor(next, 'b') } };
+    }
+    case 'offer': {
+      if (state.phase !== 'play' || state.step !== 'offer' || seat !== offerer(state)) return state;
+      const tiles = Array.isArray(action.tiles) ? action.tiles : [];
+      if (tiles.length !== OFFER_SIZE || new Set(tiles).size !== OFFER_SIZE) return state;
+      if (!tiles.every((t) => state.pool.includes(t))) return state;
+      return { ...state, step: 'choose', offer: tiles };
+    }
+    case 'take': {
+      if (state.phase !== 'play' || state.step !== 'choose' || seat !== chooser(state)) return state;
+      if (!state.offer.includes(action.tile)) return state;
+      const board = state.board.slice();
+      board[state.round - 1] = action.tile;
+      const history = [...state.history, { round: state.round, offerer: offerer(state), offer: state.offer, took: action.tile }];
+      const done = state.round >= ROUNDS;
+      return {
+        ...state,
+        board,
+        history,
+        pool: state.pool.filter((id) => id !== action.tile),
+        offer: [],
+        step: 'offer',
+        round: done ? state.round : state.round + 1,
+        phase: done ? 'guess' : 'play',
+      };
     }
     case 'say': {
+      if (state.phase !== 'play') return state;
       const text = String(action.text || '').slice(0, 60);
       if (!text) return state;
-      return { ...state, said: [...state.said, { role, text, n: state.said.length }].slice(-6) };
+      return { ...state, said: [...state.said, { seat, text, n: state.said.length }].slice(-6) };
     }
-    case 'ready': {
-      if (!canFinish(state)) return state;
-      const ready = action.both
-        ? { savorer: true, steward: true }
-        : { ...state.ready, [role]: !state.ready[role] };
-      const phase = ready.savorer && ready.steward ? 'reveal' : 'play';
-      return { ...state, ready, phase };
+    case 'guess': {
+      if (state.phase !== 'guess' || state.guesses[seat] || !ROLES[action.perspective]) return state;
+      const guesses = { ...state.guesses, [seat]: action.perspective };
+      return { ...state, guesses, phase: guesses.a && guesses.b ? 'reveal' : 'guess' };
     }
     default:
       return state;
   }
 }
 
+// True if some way of filling the day from the pool meets every goal for both seats.
 export function solvable(state) {
-  const pool = [...state.pool, ...state.board.filter(Boolean)];
+  const tiles = [...state.pool, ...state.board.filter(Boolean)];
   const perm = (left, picked) => {
-    if (picked.length === SLOTS.length) {
-      const s = score({ ...state, board: picked });
-      return s.full;
-    }
+    if (picked.length === SLOTS.length) return score({ ...state, board: picked }).full;
     return left.some((id, i) => perm([...left.slice(0, i), ...left.slice(i + 1)], [...picked, id]));
   };
-  return perm(pool, []);
+  return perm(tiles, []);
 }

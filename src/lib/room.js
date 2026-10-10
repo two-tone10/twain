@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { clientId, load, save } from './storage';
 import { newGame, reduce } from '../game/engine.mjs';
-import { OTHER } from '../game/content.mjs';
 
 const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ';
 
@@ -83,7 +82,7 @@ export function useRoom(code) {
       channel.on('broadcast', { event: 'intent' }, ({ payload }) => {
         const cur = stateRef.current;
         if (!cur || payload.from !== cur.guestId) return;
-        commit(reduce(cur, OTHER[cur.hostRole], payload.action));
+        commit(reduce(cur, 'b', payload.action));
       });
     } else {
       channel.on('broadcast', { event: 'state' }, ({ payload }) => {
@@ -124,16 +123,16 @@ export function useRoom(code) {
     };
   }, [code, me, isHost, commit]);
 
-  const role = state ? (isHost ? state.hostRole : OTHER[state.hostRole]) : null;
+  const seat = isHost === null ? null : isHost ? 'a' : 'b';
 
   const dispatch = useCallback(
     (action) => {
       const cur = stateRef.current;
       if (!cur) return;
       if (isHost) {
-        commit(reduce(cur, cur.hostRole, action));
+        commit(reduce(cur, 'a', action));
       } else {
-        const guess = reduce(cur, OTHER[cur.hostRole], action);
+        const guess = reduce(cur, 'b', action);
         stateRef.current = guess;
         setState(guess);
         channelRef.current?.send({ type: 'broadcast', event: 'intent', payload: { from: me, action } });
@@ -142,5 +141,5 @@ export function useRoom(code) {
     [isHost, commit, me],
   );
 
-  return { state, role, isHost, partnerHere, full, online, dispatch, configured: Boolean(supabase) };
+  return { state, seat, isHost, partnerHere, full, online, dispatch, configured: Boolean(supabase) };
 }

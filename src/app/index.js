@@ -30,7 +30,7 @@ export default function Home() {
           <Text style={styles.amp}>&</Text>
           <Text style={[styles.persona, { color: C.steward }]}>The Steward</Text>
         </View>
-        <Text style={styles.how}>Each of you sees half the day. Signal, trade turns, and build a Saturday you both love.</Text>
+        <Text style={styles.how}>Pick a side in secret. Build a Saturday in five rounds. Then guess which side they played.</Text>
 
         <Button label="Start a room" onPress={start} style={{ marginTop: S.xl }} />
         <View style={styles.joinRow}>

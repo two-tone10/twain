@@ -1,23 +1,23 @@
-export const SLOTS = ['Morning', 'Late morning', 'Noon', 'Afternoon', 'Evening', 'Night'];
+export const SLOTS = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Night'];
 
 export const ROLES = {
   savorer: {
     name: 'The Savorer',
     side: 'delight',
-    mark: '♥',
     line: 'You live for warmth, taste, play, rest and beauty.',
     nudge: 'Make today feel good.',
   },
   steward: {
     name: 'The Steward',
     side: 'growth',
-    mark: '✿',
     line: 'You tend what lasts: craft, care, learning, roots, an aim.',
     nudge: 'Make today grow something.',
   },
 };
 
-export const OTHER = { savorer: 'steward', steward: 'savorer' };
+export const PERSPECTIVES = ['savorer', 'steward'];
+
+export const OTHER_SEAT = { a: 'b', b: 'a' };
 
 export const TAGS = {
   delight: {
@@ -73,23 +73,5 @@ export const TILES = [
 
 export const TILE = Object.fromEntries(TILES.map((t) => [t.id, t]));
 
-export const PHRASES = {
-  savorer: [
-    'Craving something warm',
-    'I need a little play',
-    'Save me a slow moment',
-    'That one delights me',
-    'Not that one',
-    'Keep the evening',
-    'I’m happy',
-  ],
-  steward: [
-    'I want to make something',
-    'Someone needs care',
-    'Let’s learn something',
-    'That one matters to me',
-    'Not that one',
-    'Keep the morning',
-    'I’m settled',
-  ],
-};
+// Neutral on purpose: nothing here should give away which side you picked.
+export const PHRASES = ['Love that one', 'Not for me', 'Either works', 'Your call', 'Trust me', 'Hmm'];

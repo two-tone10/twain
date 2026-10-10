@@ -2,14 +2,17 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ROLES, SLOTS, TAG_LABEL, TILE } from '../game/content.mjs';
 import { goalMet, score } from '../game/engine.mjs';
 import { C, R, S, roleColor, serif } from '../lib/theme';
+import { cap } from './Pick';
 import { Button, Card, Eyebrow } from './ui';
 
-function Goals({ state, role }) {
-  const color = roleColor(role);
+function Player({ state, seat, name, read, partner }) {
+  const persp = state.picks[seat];
+  const color = roleColor(persp);
   return (
     <Card style={{ flex: 1, gap: 6 }}>
-      <Text style={{ color, fontWeight: '800' }}>{ROLES[role].name}</Text>
-      {state.goals[role].map((g, i) => {
+      <Eyebrow>{name}</Eyebrow>
+      <Text style={{ color, fontWeight: '800', fontSize: 16 }}>{ROLES[persp].name}</Text>
+      {state.goals[seat].map((g, i) => {
         const met = goalMet(g, state.board);
         return (
           <Text key={i} style={[styles.goal, met && { color }]}>
@@ -18,25 +21,29 @@ function Goals({ state, role }) {
           </Text>
         );
       })}
+      <Text style={[styles.read, { color: read ? C.ink : C.muted }]}>
+        {read ? `Read ${partner} right` : `Misread ${partner}`}
+      </Text>
     </Card>
   );
 }
 
-export function Reveal({ state, onNext, nextLabel }) {
+// `names` maps each seat to how it's addressed on this screen, e.g. { a: 'You', b: 'your partner' }.
+export function Reveal({ state, names, onAgain }) {
   const s = score(state);
   const title = s.full ? 'A full day.' : s.win ? 'A good Saturday.' : 'Not quite yet.';
-  const tally = `Delight ${s.delight}/3 · Growth ${s.growth}/3`;
-  const sub = s.win ? `${tally}. Saved to your album.` : `${tally}. You need 2 on each side.`;
+  const reads = Number(s.reads.a) + Number(s.reads.b);
+  const sub = `${reads === 2 ? 'You read each other.' : reads === 1 ? 'One read landed.' : 'Neither read landed.'} ${s.win ? 'Saved to your album.' : 'A good day needs 2 goals each.'}`;
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <Eyebrow>Round {state.round}</Eyebrow>
+      <Eyebrow>Saturday {state.game}</Eyebrow>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.sub}>{sub}</Text>
       <View style={styles.row}>
-        <Goals state={state} role="savorer" />
-        <Goals state={state} role="steward" />
+        <Player state={state} seat="a" name={cap(names.a)} read={s.reads.a} partner={names.b} />
+        <Player state={state} seat="b" name={cap(names.b)} read={s.reads.b} partner={names.a} />
       </View>
-      <Eyebrow>What each of you saw</Eyebrow>
+      <Eyebrow>What each side saw</Eyebrow>
       <View style={{ gap: 6 }}>
         {SLOTS.map((label, i) => {
           const id = state.board[i];
@@ -58,8 +65,8 @@ export function Reveal({ state, onNext, nextLabel }) {
           );
         })}
       </View>
-      <Text style={styles.swap}>Next round, you swap.</Text>
-      <Button label={nextLabel || (s.win ? 'Next Saturday' : 'Try another Saturday')} onPress={onNext} />
+      <Text style={styles.again}>Next Saturday, pick again.</Text>
+      <Button label="Play again" onPress={onAgain} />
     </ScrollView>
   );
 }
@@ -70,13 +77,14 @@ const styles = StyleSheet.create({
   sub: { fontSize: 15, color: C.muted, marginTop: -S.sm },
   row: { flexDirection: 'row', gap: S.sm },
   goal: { fontSize: 14, color: C.muted, fontWeight: '600' },
+  read: { fontSize: 13, fontWeight: '800', marginTop: S.xs },
   slot: {
     flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: C.surface,
     borderRadius: R.md, borderWidth: 1, borderColor: C.border, padding: S.sm,
   },
-  slotLabel: { width: 84, fontSize: 12, color: C.muted, fontWeight: '700' },
+  slotLabel: { width: 72, fontSize: 12, color: C.muted, fontWeight: '700' },
   emoji: { fontSize: 22 },
   name: { fontSize: 14, fontWeight: '700', color: C.ink },
   tags: { fontSize: 12, fontWeight: '700' },
-  swap: { textAlign: 'center', color: C.muted, fontFamily: serif, fontStyle: 'italic', fontSize: 16 },
+  again: { textAlign: 'center', color: C.muted, fontFamily: serif, fontStyle: 'italic', fontSize: 16 },
 });
