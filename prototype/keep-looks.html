@@ -1,0 +1,337 @@
+<title>Keep Drop Looks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;1,6..96,400&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Layout: a gallery of live phone screens, three across on desktop, one at phone width. Dark by design. */
+:root{
+  --ground:#120f18; --panel:#1b1623; --ink:#efe6d6; --dim:#b9ae9c; --faint:#8a8074; --line:rgba(239,230,214,.14); --gold:#d8b46a;
+  --serif:'Bodoni Moda','Didot',Georgia,serif; --sans:'Jost','Avenir Next',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;padding:28px 16px 56px;margin:0}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:8px;max-width:640px}
+.eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,44px);line-height:1.08;text-wrap:balance}
+h1 em{color:var(--gold)}
+p{margin:0}
+.muted{color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:36px 26px}
+.look{display:flex;flex-direction:column;gap:10px;min-width:0}
+.phone{width:100%;max-width:300px;aspect-ratio:300/560;border-radius:30px;overflow:hidden;box-shadow:0 26px 50px rgba(0,0,0,.5),0 0 0 1px var(--line);background:#000}
+canvas{display:block;width:100%;height:100%;touch-action:manipulation;cursor:pointer}
+.look h2{margin:0;font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.1}
+.look .num{font-size:10px;letter-spacing:3px;color:var(--faint)}
+.look p{max-width:36ch}
+.why{font-size:13px;color:var(--faint)}
+.why b{color:var(--dim);font-weight:500}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Keep · the drop</div>
+    <h1>Six ways for a moment <em>to fall.</em></h1>
+    <p class="muted">Each screen is live. Tap a moment to catch it and watch it land in that look’s basket. Five fills it, then it empties and keeps going.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const MOMENTS = ['A slow coffee','Call your brother','Practice guitar','The beach at dusk','A city you’ve never seen','The perfect espresso','Work on the big project','Dinner with old friends','Sleeping in','Bake the bread again','A cabin with no signal','Mentor someone','Getting a little lost','Game night','A record, start to finish','Write the first page','Ice cream on a walk','Fix the bike yourself','A rooftop at night','Coffee with your mom'];
+const WHY_OF = {'A slow coffee':0,'Sleeping in':0,'Ice cream on a walk':0,'The beach at dusk':1,'A cabin with no signal':1,'A rooftop at night':1,'A city you’ve never seen':2,'Getting a little lost':2,'Call your brother':3,'Dinner with old friends':3,'Game night':3,'Coffee with your mom':3,'Practice guitar':4,'Bake the bread again':4,'Fix the bike yourself':4,'The perfect espresso':5,'A record, start to finish':5,'Work on the big project':6,'Mentor someone':6,'Write the first page':6};
+const W = 300, H = 560, TAU = Math.PI * 2;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => 1 - Math.pow(1 - t, 3);
+
+function wrap(ctx, text, maxW) {
+  const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words) { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }
+  lines.push(cur); return lines;
+}
+function measure(ctx, font, text, maxW) {
+  ctx.font = font; const lines = wrap(ctx, text, maxW);
+  return { lines, mw: Math.max(...lines.map((l) => ctx.measureText(l).width)) };
+}
+function text(ctx, o, font, color, lh, dy = 0) {
+  ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const n = o.lines.length; o.lines.forEach((l, i) => ctx.fillText(l, 0, dy + (i - (n - 1) / 2) * lh));
+}
+function stars(n, seed) { const a = []; for (let i = 0; i < n; i++) a.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.2 + .2, p: Math.random() * TAU }); return a; }
+
+/* ---------------- the six looks ---------------- */
+const LOOKS = [
+{
+  name: 'Lanterns', blurb: 'Paper lanterns drift down through a night sky. Caught ones hang glowing on a string.',
+  why: '<b>Feel:</b> warm and calm, a little magical. The clearest fit with Night Salon.',
+  font: '500 15px "Bodoni Moda"', ink: '#efe6d6', accent: '#ffb35c',
+  init(s) { s.sky = stars(60); },
+  make(ctx, t) { const m = measure(ctx, this.font, t, 108); const w = m.mw + 36, h = m.lines.length * 18 + 36; const x = rnd(w / 2 + 6, W - w / 2 - 6); return { lines: m.lines, w, h, x, x0: x, y: -h, vy: rnd(36, 50), ph: rnd(0, TAU), hw: w / 2, hh: h / 2 }; },
+  update(o, dt, T) { o.y += o.vy * dt; o.x = o.x0 + Math.sin(T * 1.1 + o.ph) * 14; o.rot = Math.sin(T * 1.1 + o.ph + .6) * .07; return o.y > H + o.h; },
+  bg(ctx, T, s) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0d0a17'); g.addColorStop(1, '#2c1630'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    s.sky.forEach((p) => { ctx.globalAlpha = .35 + .35 * Math.sin(T * 1.5 + p.p); ctx.fillStyle = '#fff3d6'; ctx.fillRect(p.x, p.y, p.r, p.r); }); ctx.globalAlpha = 1;
+  },
+  draw(ctx, o) {
+    const { w, h } = o;
+    ctx.strokeStyle = 'rgba(255,220,160,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -h / 2 - 5); ctx.lineTo(0, -h / 2 - 34); ctx.stroke();
+    ctx.shadowColor = 'rgba(255,150,60,.6)'; ctx.shadowBlur = 30;
+    const g = ctx.createRadialGradient(0, 0, 4, 0, 0, w * .7); g.addColorStop(0, '#ffe7b0'); g.addColorStop(.55, '#f3a64f'); g.addColorStop(1, '#c25a2a');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, h * .45); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(120,45,15,.22)'; ctx.beginPath(); ctx.ellipse(0, 0, w * .28, h / 2, 0, 0, TAU); ctx.stroke();
+    ctx.fillStyle = '#3a1a10'; ctx.fillRect(-w * .2, -h / 2 - 5, w * .4, 6); ctx.fillRect(-w * .2, h / 2 - 1, w * .4, 6);
+    ctx.strokeStyle = '#c25a2a'; ctx.beginPath(); ctx.moveTo(0, h / 2 + 5); ctx.lineTo(0, h / 2 + 16); ctx.stroke();
+    text(ctx, o, this.font, '#4a1d0b', 18);
+  },
+  slots() { const a = []; for (let i = 0; i < 5; i++) { const t = .14 + i * .18, x = lerp(14, 286, t), y = (1 - t) * (1 - t) * (H - 64) + 2 * (1 - t) * t * (H - 16) + t * t * (H - 64); a.push({ x, y: y + 16 }); } return a; },
+  basket(ctx, s, T) {
+    ctx.strokeStyle = 'rgba(255,220,160,.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(14, H - 64); ctx.quadraticCurveTo(150, H - 16, 286, H - 64); ctx.stroke();
+    s.slotPos.forEach((p, i) => {
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - 16); ctx.lineTo(p.x, p.y - 9); ctx.stroke();
+      if (i < s.filled) { ctx.shadowColor = 'rgba(255,150,60,.8)'; ctx.shadowBlur = 16; const g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, 12); g.addColorStop(0, '#ffe7b0'); g.addColorStop(1, '#d9702f'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(p.x, p.y, 10, 12, 0, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; }
+      else { ctx.strokeStyle = 'rgba(255,220,160,.25)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.ellipse(p.x, p.y, 10, 12, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = 'rgba(255,220,160,.35)'; }
+    });
+  },
+},
+{
+  name: 'Falling leaves', blurb: 'Moments flutter down like autumn leaves. Caught ones are pressed into an open book.',
+  why: '<b>Feel:</b> natural and seasonal. The flutter makes every catch feel lucky.',
+  font: '500 14px "Bodoni Moda"', ink: '#efe6d6', accent: '#e0a74a',
+  colors: ['#c8743a', '#d9a441', '#b0503a', '#8f9c4c', '#c98d3f'],
+  init(s) { s.bokeh = Array.from({ length: 9 }, () => ({ x: rnd(0, W), y: rnd(0, H), r: rnd(20, 60), a: rnd(.03, .08) })); },
+  make(ctx, t) { const m = measure(ctx, this.font, t, 96); const w = m.mw + 56, h = m.lines.length * 17 + 46; const x = rnd(w / 2, W - w / 2); return { lines: m.lines, w, h, x, x0: x, y: -h, vy: rnd(34, 46), ph: rnd(0, TAU), c: this.colors[Math.random() * 5 | 0], hw: w / 2, hh: h / 2.4 }; },
+  update(o, dt, T) { o.y += o.vy * (.65 + .55 * Math.abs(Math.cos(T * 2 + o.ph))) * dt; o.x = o.x0 + Math.sin(T * .9 + o.ph) * 24; o.rot = Math.sin(T * 1.8 + o.ph) * .3; return o.y > H + o.h; },
+  bg(ctx, T, s) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0c130e'); g.addColorStop(1, '#1f2a1b'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    s.bokeh.forEach((b) => { ctx.fillStyle = `rgba(230,180,90,${b.a})`; ctx.beginPath(); ctx.arc(b.x, b.y + Math.sin(T * .3 + b.r) * 6, b.r, 0, TAU); ctx.fill(); });
+  },
+  leaf(ctx, w, h, c) {
+    ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(-w / 2, 0);
+    ctx.bezierCurveTo(-w * .22, -h * .78, w * .28, -h * .62, w / 2, 0); ctx.bezierCurveTo(w * .28, h * .62, -w * .22, h * .78, -w / 2, 0); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,30,10,.5)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-w / 2, 0); ctx.lineTo(-w / 2 - 9, 4); ctx.stroke();
+  },
+  draw(ctx, o) {
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6; this.leaf(ctx, o.w, o.h, o.c); ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = 'rgba(255,240,210,.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-o.w / 2 + 6, 0); ctx.quadraticCurveTo(0, -3, o.w / 2 - 8, 0); ctx.stroke();
+    text(ctx, o, this.font, '#23130a', 17);
+  },
+  slots() { return [0, 1, 2, 3, 4].map((i) => ({ x: 46 + i * 52, y: H - 44 })); },
+  basket(ctx, s) {
+    ctx.save(); ctx.fillStyle = '#efe4cf'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.moveTo(16, H - 72); ctx.quadraticCurveTo(80, H - 82, 150, H - 74); ctx.lineTo(150, H - 14); ctx.quadraticCurveTo(80, H - 22, 16, H - 12); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(284, H - 72); ctx.quadraticCurveTo(220, H - 82, 150, H - 74); ctx.lineTo(150, H - 14); ctx.quadraticCurveTo(220, H - 22, 284, H - 12); ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.strokeStyle = 'rgba(80,60,40,.25)'; ctx.beginPath(); ctx.moveTo(150, H - 74); ctx.lineTo(150, H - 14); ctx.stroke();
+    s.slotPos.forEach((p, i) => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(-.5 + i * .25);
+      if (i < s.filled) this.leaf(ctx, 34, 20, s.keptColors[i] || '#c8743a');
+      else { ctx.strokeStyle = 'rgba(80,60,40,.28)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(-17, 0); ctx.bezierCurveTo(-7, -15, 9, -12, 17, 0); ctx.bezierCurveTo(9, 12, -7, 15, -17, 0); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.restore(); });
+  },
+  onCatch(o, s) { s.keptColors[s.filled] = o.c; },
+},
+{
+  name: 'Falling stars', blurb: 'Each moment is a shooting star. Catch one and it settles into your sky. Five catches draw your constellation for the round.',
+  why: '<b>Feel:</b> wishful. Each why has its own part of the sky, so your keeps draw a shape that’s yours. Old rounds stay faintly behind it, so your pattern builds up over time.',
+  font: '500 15px "Bodoni Moda"', ink: '#efe6d6', accent: '#ffe6a6',
+  init(s) { s.sky = stars(110); s.points = []; s.ghosts = []; },
+  make(ctx, t) { const m = measure(ctx, this.font, t, 130); const pad = m.mw / 2 + 10; const x = rnd(pad, W - pad); return { text: t, lines: m.lines, mw: m.mw, pad, x, y: -30, vx: rnd(-28, 28), vy: rnd(58, 72), trail: [], hw: m.mw / 2 + 10, hh: m.lines.length * 10 + 18, hy: 14 }; },
+  update(o, dt) { o.x += o.vx * dt; o.y += o.vy * dt; o.trail.unshift([o.x, o.y]); o.trail.length = Math.min(o.trail.length, 22); if (o.x < o.pad) { o.x = o.pad; o.vx = Math.abs(o.vx); } if (o.x > W - o.pad) { o.x = W - o.pad; o.vx = -Math.abs(o.vx); } return o.y > H - 125; },
+  bg(ctx, T, s) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#05060f'); g.addColorStop(1, '#141938'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    s.sky.forEach((p) => { ctx.globalAlpha = .25 + .5 * (.5 + .5 * Math.sin(T * 2 + p.p)); ctx.fillStyle = '#e8ecff'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * .8, 0, TAU); ctx.fill(); }); ctx.globalAlpha = 1;
+  },
+  draw(ctx, o, flying) {
+    if (!flying) ctx.globalAlpha = Math.max(0, Math.min(1, (H - 125 - o.y) / 70));
+    if (!flying && o.trail.length > 1) {
+      for (let i = 1; i < o.trail.length; i++) { const a = 1 - i / o.trail.length; ctx.strokeStyle = `rgba(255,226,160,${a * .55})`; ctx.lineWidth = 3 * a + .5; ctx.beginPath(); ctx.moveTo(o.trail[i - 1][0] - o.x, o.trail[i - 1][1] - o.y); ctx.lineTo(o.trail[i][0] - o.x, o.trail[i][1] - o.y); ctx.stroke(); }
+    }
+    ctx.shadowColor = '#ffe6a6'; ctx.shadowBlur = 20; ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
+    if (!flying) { ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 8; text(ctx, o, this.font, '#f3ead9', 18, 22 + (o.lines.length - 1) * 9); ctx.shadowBlur = 0; }
+  },
+  // each why owns a strip of sky, so five keeps draw a shape that is yours
+  slotFor(o, s) {
+    const k = WHY_OF[o.text] ?? 0, h = [...o.text].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const p = { x: 34 + k * 38.6 + ((h % 29) - 14), y: H - 112 + (h % 61) };
+    s.points.push(p); return p;
+  },
+  slots() { return []; },
+  onClear(s) { s.ghosts.unshift(s.points.slice(0, 5)); s.ghosts.length = Math.min(s.ghosts.length, 3); s.points = []; },
+  basket(ctx, s, T) {
+    const shape = (pts, a, lw) => { if (pts.length < 2) return; ctx.strokeStyle = `rgba(255,226,160,${a})`; ctx.lineWidth = lw; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke(); };
+    s.ghosts.forEach((g, i) => { shape(g, .12 - i * .03, .8); g.forEach((p) => { ctx.fillStyle = `rgba(232,236,255,${.25 - i * .06})`; ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, TAU); ctx.fill(); }); });
+    const pts = s.points.slice(0, s.filled), done = s.filled === 5;
+    shape(pts, done ? .75 : .45, done ? 1.4 : 1);
+    pts.forEach((p, i) => { const tw = 1 + Math.sin(T * 3 + i) * .25; ctx.shadowColor = '#ffe6a6'; ctx.shadowBlur = done ? 18 : 12; ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4 * tw, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; });
+    if (done) { ctx.font = '500 8px Jost'; ctx.fillStyle = 'rgba(216,180,106,.9)'; ctx.textAlign = 'center'; ctx.fillText('Y O U R   C O N S T E L L A T I O N', 150, H - 22); }
+    else if (!pts.length) { ctx.font = 'italic 400 11px "Bodoni Moda"'; ctx.fillStyle = 'rgba(232,236,255,.35)'; ctx.textAlign = 'center'; ctx.fillText('your sky', 150, H - 60); }
+  },
+},
+{
+  name: 'Ball drop', blurb: 'Moments bounce down through brass pegs, pachinko style. Catch one before it drops out.',
+  why: '<b>Feel:</b> the most arcade-like. The bounces are unpredictable, so it’s fun to watch even when you miss.',
+  font: '500 14px "Bodoni Moda"', ink: '#efe6d6', accent: '#d8b46a',
+  init(s) { s.pegs = []; for (let r = 0; r < 6; r++) for (let c = 0; c < 5; c++) s.pegs.push({ x: 30 + c * 60 + (r % 2 ? 30 : 0), y: 120 + r * 58 }); s.pegs = s.pegs.filter((p) => p.x < 285); },
+  make(ctx, t) { const m = measure(ctx, this.font, t, 110); const w = m.mw + 26, h = m.lines.length * 16 + 18; return { lines: m.lines, w, h, x: rnd(70, 230), y: -h, vx: rnd(-30, 30), vy: 20, cool: 0, hw: w / 2, hh: h / 2 }; },
+  update(o, dt, T, s) {
+    o.vy = Math.min(o.vy + 240 * dt, 150); o.x += o.vx * dt; o.y += o.vy * dt; o.cool -= dt;
+    if (o.cool <= 0) for (const p of s.pegs) { const dx = o.x - p.x, dy = o.y - p.y; if (Math.abs(dx) < 16 && Math.abs(dy) < o.h / 2 + 3) { o.vy = -Math.abs(o.vy) * .3; const dir = o.x > W - 70 ? -1 : o.x < 70 ? 1 : (dx >= 0 ? 1 : -1); o.vx = dir * rnd(40, 80); o.cool = .28; p.hit = T; break; } }
+    if (o.x - o.w / 2 < 6) { o.x = 6 + o.w / 2; o.vx = Math.abs(o.vx); } if (o.x + o.w / 2 > W - 6) { o.x = W - 6 - o.w / 2; o.vx = -Math.abs(o.vx); }
+    o.vx *= .995; o.rot = o.vx * .0025; return o.y > H - 84;
+  },
+  bg(ctx, T, s) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1d1424'); g.addColorStop(1, '#120d17'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    s.pegs.forEach((p) => { const lit = p.hit && T - p.hit < .3; ctx.shadowColor = '#d8b46a'; ctx.shadowBlur = lit ? 16 : 0; ctx.fillStyle = lit ? '#ffe2a0' : '#b8944f'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(p.x - 1.2, p.y - 1.2, 1.2, 0, TAU); ctx.fill(); });
+  },
+  draw(ctx, o) {
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4; ctx.fillStyle = '#f3ead9'; ctx.beginPath(); ctx.roundRect(-o.w / 2, -o.h / 2, o.w, o.h, o.h / 2); ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; ctx.strokeStyle = '#d8b46a'; ctx.lineWidth = 1.5; ctx.stroke();
+    text(ctx, o, this.font, '#15111d', 16);
+  },
+  slots() { return [0, 1, 2, 3, 4].map((i) => ({ x: 34 + i * 58, y: H - 40 })); },
+  basket(ctx, s) {
+    ctx.fillStyle = '#0d0910'; ctx.fillRect(0, H - 76, W, 76);
+    ctx.strokeStyle = '#b8944f'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, H - 76); ctx.lineTo(W, H - 76); ctx.stroke();
+    s.slotPos.forEach((p, i) => { ctx.strokeStyle = 'rgba(216,180,106,.5)'; ctx.beginPath(); ctx.moveTo(p.x - 26, p.y - 22); ctx.lineTo(p.x - 26, p.y + 18); ctx.quadraticCurveTo(p.x, p.y + 28, p.x + 26, p.y + 18); ctx.lineTo(p.x + 26, p.y - 22); ctx.stroke();
+      if (i < s.filled) { ctx.fillStyle = '#f3ead9'; ctx.beginPath(); ctx.roundRect(p.x - 20, p.y - 2, 40, 14, 7); ctx.fill(); ctx.strokeStyle = '#d8b46a'; ctx.stroke(); } });
+  },
+},
+{
+  name: 'Tickets', blurb: 'Moments tumble down as letterpress admission tickets. Caught ones get a stamp and join your stubs.',
+  why: '<b>Feel:</b> each moment becomes a ticket to something. It looks great in screenshots and ties straight into the “try one today” list.',
+  font: '600 15px "Bodoni Moda"', ink: '#efe6d6', accent: '#b5452f',
+  init() {},
+  make(ctx, t) { const m = measure(ctx, this.font, t, 120); const w = Math.max(132, m.mw + 46), h = m.lines.length * 18 + 44; const x = rnd(w / 2 + 4, W - w / 2 - 4); return { lines: m.lines, w, h, x, x0: x, y: -h, vy: rnd(40, 54), ph: rnd(0, TAU), hw: w / 2, hh: h / 2 }; },
+  update(o, dt, T) { o.y += o.vy * dt; o.rot = Math.sin(T * .9 + o.ph) * .42; o.x = o.x0 + Math.sin(T * .6 + o.ph) * 10; o.sx = .86 + .14 * Math.cos(T * 1.7 + o.ph); return o.y > H + o.h; },
+  bg(ctx) {
+    ctx.fillStyle = '#15111d'; ctx.fillRect(0, 0, W, H);
+    const g = ctx.createRadialGradient(150, -40, 10, 150, -40, 420); g.addColorStop(0, 'rgba(216,180,106,.16)'); g.addColorStop(1, 'rgba(216,180,106,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  },
+  ticket(ctx, w, h) {
+    const x0 = -w / 2, y0 = -h / 2, x1 = w / 2, y1 = h / 2, c = 5, n = 7;
+    ctx.beginPath(); ctx.moveTo(x0 + c, y0); ctx.lineTo(x1 - c, y0); ctx.quadraticCurveTo(x1, y0, x1, y0 + c); ctx.lineTo(x1, -n); ctx.arc(x1, 0, n, -Math.PI / 2, Math.PI / 2, true);
+    ctx.lineTo(x1, y1 - c); ctx.quadraticCurveTo(x1, y1, x1 - c, y1); ctx.lineTo(x0 + c, y1); ctx.quadraticCurveTo(x0, y1, x0, y1 - c); ctx.lineTo(x0, n); ctx.arc(x0, 0, n, Math.PI / 2, -Math.PI / 2, true);
+    ctx.lineTo(x0, y0 + c); ctx.quadraticCurveTo(x0, y0, x0 + c, y0); ctx.closePath();
+  },
+  draw(ctx, o) {
+    ctx.scale(o.sx || 1, 1);
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6; ctx.fillStyle = '#f3ead9'; this.ticket(ctx, o.w, o.h); ctx.fill(); ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = 'rgba(160,120,50,.55)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.roundRect(-o.w / 2 + 12, -o.h / 2 + 6, o.w - 24, o.h - 12, 3); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = '600 7px Jost'; ctx.fillStyle = '#9a7a3c'; ctx.textAlign = 'center'; ctx.fillText('A D M I T   O N E', 0, -o.h / 2 + 15);
+    text(ctx, o, this.font, '#15111d', 18, 5);
+  },
+  slots() { return [0, 1, 2, 3, 4].map((i) => ({ x: 36 + i * 57, y: H - 42 })); },
+  basket(ctx, s) {
+    s.slotPos.forEach((p, i) => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate((i - 2) * .06);
+      if (i < s.filled) { ctx.fillStyle = '#f3ead9'; this.ticket(ctx, 48, 30); ctx.fill(); ctx.strokeStyle = '#b5452f'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.stroke(); ctx.font = '600 6px Jost'; ctx.fillStyle = '#b5452f'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('KEPT', 0, 0); }
+      else { ctx.strokeStyle = 'rgba(239,230,214,.22)'; ctx.setLineDash([3, 3]); this.ticket(ctx, 48, 30); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.restore(); });
+  },
+  fx(ctx, f) { // the stamp
+    const a = 1 - f.t; ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(-.25); ctx.scale(1.6 - .6 * Math.min(1, f.t * 4), 1.6 - .6 * Math.min(1, f.t * 4)); ctx.globalAlpha = a;
+    ctx.strokeStyle = '#b5452f'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect(-38, -15, 76, 30, 4); ctx.stroke();
+    ctx.font = '600 18px Jost'; ctx.fillStyle = '#b5452f'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('KEPT', 0, 1); ctx.restore();
+  },
+},
+{
+  name: 'Bubbles', blurb: 'Turned upside down: moments rise like bubbles from the deep, and your basket waits at the surface.',
+  why: '<b>Feel:</b> soothing, almost meditative. Rising reads as lighter and more hopeful than falling.',
+  font: '500 14px "Bodoni Moda"', ink: '#e9f7f5', accent: '#a8eef2', top: true,
+  init(s) { s.motes = Array.from({ length: 40 }, () => ({ x: rnd(0, W), y: rnd(0, H), v: rnd(6, 18), r: rnd(.5, 1.6) })); },
+  make(ctx, t) { const m = measure(ctx, this.font, t, 86); const r = Math.max(42, m.mw / 2 + 16, m.lines.length * 9 + 22); const x = rnd(r + 4, W - r - 4); return { lines: m.lines, r, x, x0: x, y: H + r, vy: -rnd(30, 42), ph: rnd(0, TAU), hw: r, hh: r }; },
+  update(o, dt, T) { o.y += o.vy * dt; o.x = o.x0 + Math.sin(T * 1.3 + o.ph) * 12; o.sq = 1 + Math.sin(T * 3 + o.ph) * .03; return o.y < 96; },
+  bg(ctx, T, s) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#11495a'); g.addColorStop(.35, '#072836'); g.addColorStop(1, '#020a10'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 4; i++) { const x = 40 + i * 75 + Math.sin(T * .4 + i) * 20; ctx.fillStyle = 'rgba(170,240,255,.045)'; ctx.beginPath(); ctx.moveTo(x - 14, 80); ctx.lineTo(x + 14, 80); ctx.lineTo(x + 60, H); ctx.lineTo(x - 20, H); ctx.fill(); }
+    s.motes.forEach((m) => { m.y -= m.v / 60; if (m.y < 80) m.y = H; ctx.fillStyle = 'rgba(200,245,255,.35)'; ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, TAU); ctx.fill(); });
+  },
+  draw(ctx, o) {
+    const r = o.r; ctx.scale(o.sq || 1, 2 - (o.sq || 1));
+    const g = ctx.createRadialGradient(-r * .3, -r * .35, r * .1, 0, 0, r); g.addColorStop(0, 'rgba(255,255,255,.16)'); g.addColorStop(.7, 'rgba(120,220,235,.05)'); g.addColorStop(1, 'rgba(160,235,245,.22)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(205,248,255,.6)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(-r * .42, -r * .46, r * .16, r * .08, -.7, 0, TAU); ctx.fill();
+    text(ctx, o, this.font, '#e9f7f5', 17);
+  },
+  slots() { return [0, 1, 2, 3, 4].map((i) => ({ x: 46 + i * 52, y: 56 })); },
+  basket(ctx, s, T) {
+    ctx.strokeStyle = 'rgba(205,248,255,.5)'; ctx.lineWidth = 1.2; ctx.beginPath();
+    for (let x = 0; x <= W; x += 6) { const y = 84 + Math.sin(x * .05 + T * 1.6) * 2.5; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    s.slotPos.forEach((p, i) => { ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, TAU);
+      if (i < s.filled) { ctx.fillStyle = 'rgba(168,238,242,.28)'; ctx.fill(); ctx.strokeStyle = 'rgba(205,248,255,.8)'; ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(p.x - 4, p.y - 4, 2, 0, TAU); ctx.fill(); }
+      else { ctx.strokeStyle = 'rgba(205,248,255,.25)'; ctx.setLineDash([2, 3]); ctx.stroke(); ctx.setLineDash([]); } });
+  },
+},
+];
+
+/* ---------------- shared stage ---------------- */
+class Stage {
+  constructor(canvas, look) {
+    this.c = canvas; this.ctx = canvas.getContext('2d'); this.L = look;
+    this.items = []; this.flies = []; this.fx = []; this.filled = 0; this.keptColors = []; this.T = 0; this.next = .3; this.deck = []; this.clearAt = 0;
+    look.init(this); this.slotPos = look.slots();
+    this.resize(); new ResizeObserver(() => this.resize()).observe(canvas);
+    canvas.addEventListener('pointerdown', (e) => this.tap(e));
+  }
+  resize() { const r = this.c.getBoundingClientRect(), d = devicePixelRatio || 1; this.c.width = r.width * d; this.c.height = r.height * d; this.k = (r.width * d) / W; }
+  card() { if (!this.deck.length) this.deck = MOMENTS.slice().sort(() => Math.random() - .5); return this.deck.pop(); }
+  tap(e) {
+    const r = this.c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const o = this.items[i], cy = o.y + (o.hy || 0);
+      if (Math.abs(x - o.x) <= o.hw + 6 && Math.abs(y - cy) <= o.hh + 6) {
+        this.items.splice(i, 1);
+        this.fx.push({ x: o.x, y: o.y, t: 0 });
+        if (this.filled + this.flies.length < 5) { this.L.onCatch?.(o, this); this.flies.push({ o, x0: o.x, y0: o.y, to: this.L.slotFor ? this.L.slotFor(o, this) : this.slotPos[this.filled + this.flies.length], t: 0 }); }
+        try { navigator.vibrate?.(10); } catch {}
+        return;
+      }
+    }
+  }
+  step(dt) {
+    this.T += dt; const L = this.L;
+    if (this.T >= this.next) { this.items.push(L.make(this.ctx, this.card())); this.next = this.T + rnd(1.3, 1.9); }
+    this.items = this.items.filter((o) => !L.update(o, dt, this.T, this));
+    this.flies = this.flies.filter((f) => { f.t += dt / .5; if (f.t >= 1) { this.filled++; if (this.filled === 5) this.clearAt = this.T + 1.6; return false; } return true; });
+    this.fx = this.fx.filter((f) => (f.t += dt / .7) < 1);
+    if (this.clearAt && this.T >= this.clearAt) { this.L.onClear?.(this); this.filled = 0; this.keptColors = []; this.clearAt = 0; }
+  }
+  draw() {
+    const { ctx, L } = this; ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
+    L.bg(ctx, this.T, this);
+    // hud
+    ctx.font = '500 9px Jost'; ctx.fillStyle = 'rgba(216,180,106,.9)'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const hy = L.top ? H - 26 : 26; ctx.fillText('K E E P   F I V E', 20, hy);
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(20, hy + 10, 260, 2); ctx.fillStyle = 'rgba(216,180,106,.9)'; ctx.fillRect(20, hy + 10, 260 * (1 - (this.T % 45) / 45), 2);
+    L.basket(ctx, this, this.T);
+    for (const o of this.items) { ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rot || 0); L.draw(ctx, o, false); ctx.restore(); }
+    for (const f of this.flies) {
+      const e = ease(f.t), s = lerp(1, .3, e); ctx.save(); ctx.globalAlpha = 1 - e * .4;
+      ctx.translate(lerp(f.x0, f.to.x, e), lerp(f.y0, f.to.y, e) - Math.sin(e * Math.PI) * 40); ctx.rotate((f.o.rot || 0) * (1 - e)); ctx.scale(s, s); L.draw(ctx, f.o, true); ctx.restore();
+    }
+    for (const f of this.fx) {
+      if (L.fx) L.fx(ctx, f);
+      else { ctx.strokeStyle = L.accent; ctx.globalAlpha = 1 - f.t; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(f.x, f.y, 10 + f.t * 46, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1; }
+    }
+  }
+}
+
+const grid = document.getElementById('grid');
+const stages = LOOKS.map((L, i) => {
+  const el = document.createElement('section'); el.className = 'look';
+  el.innerHTML = `<div class="phone"><canvas aria-label="${L.name} drop, tap moments to catch them"></canvas></div>
+    <div class="num">${String.fromCharCode(65 + i)}</div><h2>${L.name}</h2><p class="muted">${L.blurb}</p><p class="why">${L.why}</p>`;
+  grid.appendChild(el);
+  const s = new Stage(el.querySelector('canvas'), L); s.visible = true;
+  new IntersectionObserver(([en]) => (s.visible = en.isIntersecting)).observe(el);
+  return s;
+});
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  stages.forEach((s) => { if (s.visible) { s.step(dt); s.draw(); } });
+  requestAnimationFrame(frame);
+}
+(document.fonts?.ready || Promise.resolve()).then(() => requestAnimationFrame(frame));
+// warm up so every screen opens mid-fall instead of empty
+stages.forEach((s) => { for (let i = 0; i < 160; i++) s.step(1 / 30); });
+</script>

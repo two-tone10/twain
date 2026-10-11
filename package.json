@@ -3,22 +3,30 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/bodoni-moda": "^0.4.2",
+    "@expo-google-fonts/jost": "^0.4.2",
     "@expo/metro-runtime": "~56.0.21",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.117.3",
     "expo": "~56.0.23",
     "expo-constants": "~56.0.27",
     "expo-crypto": "~56.0.5",
     "expo-font": "~56.0.7",
+    "expo-haptics": "~56.0.3",
     "expo-linking": "~56.0.18",
+    "expo-notifications": "~56.0.26",
     "expo-router": "~56.2.21",
+    "expo-splash-screen": "~56.0.15",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
+    "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-web": "^0.21.2",
+    "react-native-worklets": "0.8.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -26,12 +34,15 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test src/game/*.test.mjs",
+    "test": "node --test src/keep/*.test.mjs",
     "lint": "expo lint"
   },
   "private": true,
   "devDependencies": {
     "eslint": "^9.39.5",
     "eslint-config-expo": "~56.0.4"
+  },
+  "allowScripts": {
+    "@shopify/react-native-skia@2.6.2": true
   }
 }

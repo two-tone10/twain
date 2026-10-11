@@ -1,22 +1,27 @@
-import { Platform } from 'react-native';
-
+// Night sky. Gold for the game's own voice, warm starlight for anything you keep.
 export const C = {
-  bg: '#f0ece4',
-  surface: '#faf7f1',
-  surface2: '#e8e2d6',
-  border: '#ddd5c7',
-  ink: '#2b2722',
-  muted: '#7a7268',
-  savorer: '#c0644e',
-  savorerTint: 'rgba(192,100,78,0.12)',
-  steward: '#5f7a5a',
-  stewardTint: 'rgba(95,122,90,0.14)',
+  sky0: '#05060f',
+  sky1: '#141938',
+  ink: '#efe6d6',
+  dim: '#b9ae9c',
+  faint: '#8a8074',
+  line: 'rgba(239,230,214,0.14)',
+  panel: 'rgba(239,230,214,0.05)',
+  gold: '#d8b46a',
+  star: '#fffaf0',
+  glow: '#ffe6a6',
+  dark: '#15111d',
 };
 
 export const S = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 export const R = { sm: 4, md: 8, lg: 12, xl: 16, full: 999 };
 
-export const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' });
-
-export const roleColor = (role) => (role === 'savorer' ? C.savorer : C.steward);
-export const roleTint = (role) => (role === 'savorer' ? C.savorerTint : C.stewardTint);
+// Loaded in _layout; Skia loads the same files by path in keep/sky.js.
+export const F = {
+  serif: 'BodoniModa_500Medium',
+  serifRegular: 'BodoniModa_400Regular',
+  serifItalic: 'BodoniModa_400Regular_Italic',
+  sans: 'Jost_400Regular',
+  sansMedium: 'Jost_500Medium',
+  sansBold: 'Jost_600SemiBold',
+};
