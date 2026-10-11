@@ -1,0 +1,508 @@
+<title>Keep</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Layout: one phone-width column, full height. Field in the middle, basket(s) at the edges. Dark by design. */
+:root{
+  --ground:#15111d; --panel:#1d1727; --card:#f3ead9; --card-ink:#15111d;
+  --ink:#efe6d6; --dim:#b9ae9c; --faint:#8a8074; --line:rgba(239,230,214,.16);
+  --gold:#d8b46a; --jade:#74c7a6;
+  --serif:'Bodoni Moda','Didot',Georgia,serif; --sans:'Jost','Avenir Next',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;padding:0 16px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#app{max-width:420px;height:100%;margin:0 auto;display:flex;flex-direction:column;padding-block:18px;gap:12px}
+#app.scroll{height:auto;min-height:100%}
+.eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+h1,h2{margin:0;font-family:var(--serif);font-weight:400;line-height:1.08;text-wrap:balance}
+h1{font-size:64px} h2{font-size:30px}
+em{color:var(--gold)}
+.muted{color:var(--dim)} .faint{color:var(--faint)} .small{font-size:13px}
+p{margin:0}
+.spacer{flex:1}
+.stack{display:flex;flex-direction:column;gap:10px}
+.btn{all:unset;cursor:pointer;text-align:center;padding:16px;border-radius:999px;background:var(--gold);color:var(--card-ink);font-weight:600;font-size:17px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:11px 16px;font-size:15px}
+.btn:focus-visible,.todo:focus-visible,.pick:focus-visible,.cutc:focus-visible{outline:2px solid var(--jade);outline-offset:3px}
+input{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:16px}
+label{font-size:12px;color:var(--dim);display:block;margin-bottom:5px}
+
+/* play */
+.hud{display:flex;justify-content:space-between;align-items:center}
+.timer{height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.timer i{display:block;height:100%;background:var(--gold);width:100%;transform-origin:left}
+#field{position:relative;flex:1;overflow:hidden;touch-action:manipulation;border-radius:18px;background:radial-gradient(120% 60% at 50% 0%,rgba(216,180,106,.07),transparent 70%)}
+.m{position:absolute;left:0;top:0;max-width:62%;padding:12px 16px;border-radius:14px;background:var(--card);color:var(--card-ink);font-family:var(--serif);font-size:18px;line-height:1.15;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.45);will-change:transform;text-align:center}
+.m.pending{box-shadow:0 0 0 3px var(--gold),0 10px 24px rgba(0,0,0,.45)}
+.basket{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.slot{height:48px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;padding:4px;font-family:var(--serif);font-size:11px;line-height:1.1;text-align:center;color:var(--card-ink);overflow:hidden}
+.slot.full{background:var(--card);border:1px solid var(--card);animation:land .35s ease-out}
+.basket.choosing .slot.full{cursor:pointer;box-shadow:0 0 0 2px var(--gold);animation:wob .9s ease-in-out infinite}
+.slot.out{animation:out .3s ease-in forwards}
+@keyframes land{from{transform:scale(1.25)}to{transform:scale(1)}}
+@keyframes wob{50%{transform:translateY(-3px)}}
+@keyframes out{to{transform:translateY(-30px) rotate(-8deg);opacity:0}}
+.fly{position:fixed;z-index:5;pointer-events:none;border-radius:12px;background:var(--card);color:var(--card-ink);font-family:var(--serif);font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;transition:transform .36s cubic-bezier(.5,-0.25,.6,1),width .36s,height .36s,opacity .36s}
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:9;background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;white-space:nowrap;animation:fade 2.2s forwards}
+@keyframes fade{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0}}
+.pop{position:absolute;z-index:4;pointer-events:none;font-family:var(--serif);font-style:italic;font-size:20px;color:var(--gold);animation:rise .8s forwards}
+@keyframes rise{to{transform:translateY(-26px);opacity:0}}
+
+/* final cut */
+.cut{display:flex;flex-direction:column;gap:12px}
+.cutc{all:unset;cursor:pointer;border-radius:18px;background:var(--card);color:var(--card-ink);padding:26px 18px;text-align:center;font-family:var(--serif);font-size:26px;line-height:1.15;transition:transform .3s,opacity .3s}
+.cutc.win{transform:scale(1.04);box-shadow:0 0 0 3px var(--gold)}
+.cutc.lose{opacity:.15;transform:scale(.94)}
+.or{text-align:center;font-family:var(--serif);font-style:italic;color:var(--faint)}
+
+/* duel */
+#field.duel{background:none}
+.mid{position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--line);overflow:hidden}
+.mid i{display:block;height:100%;background:var(--gold);transform-origin:center}
+.m.d{padding:0;display:flex;flex-direction:column;max-width:58%}
+.m.d span{display:block;padding:8px 14px;font-size:16px}
+.m.d .up{transform:rotate(180deg);border-bottom:1px dashed rgba(21,17,29,.25)}
+.side{display:flex;flex-direction:column;gap:6px}
+.side.top{transform:rotate(180deg)}
+.side .who{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
+
+/* results */
+.lines{display:flex;flex-direction:column;gap:10px}
+.line{font-family:var(--serif);font-size:18px;line-height:1.35}
+.klist{display:flex;flex-direction:column}
+.krow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.krow b{font-family:var(--serif);font-weight:400;font-size:16px}
+.krow small{font-family:var(--sans);font-size:9px;letter-spacing:2px;color:var(--gold);margin-left:6px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--c);white-space:nowrap}
+.chip svg{width:15px;height:15px}
+.tally{display:flex;flex-wrap:wrap;gap:6px}
+.tally span{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--c);color:var(--c)}
+.rule{border-top:1px solid rgba(216,180,106,.3);padding-top:12px}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cols .krow{flex-direction:column;align-items:flex-start;gap:2px}
+.cols .krow b{font-size:14px}
+
+/* the list */
+.bring{display:flex;flex-direction:column;gap:10px}
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.pick{all:unset;cursor:pointer;padding:8px 13px;border-radius:999px;border:1px solid var(--line);font-family:var(--serif);font-size:15px;color:var(--dim)}
+.pick.on{border-color:var(--gold);color:var(--ink);background:rgba(216,180,106,.1)}
+.today{border-radius:16px;background:var(--panel);border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.todo{all:unset;cursor:pointer;display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.todo.first{border-top:0}
+.tick{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--c);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--card-ink)}
+.todo.done .tick{background:var(--c)}
+.todo .tt{flex:1;font-family:var(--serif);font-size:17px}
+.todo.done .tt{color:var(--faint)}
+.todo .day{font-size:11px;color:var(--faint)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app"></div>
+
+<script>
+const WHYS = {
+  delight:{name:'Delight',c:'#ef8f9f',d:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',line:'You kept what simply feels good.'},
+  setting:{name:'Setting',c:'#d9b26a',d:'M4 11l8-7 8 7v9H4z M10 20v-5h4v5',line:'You kept the places.'},
+  novelty:{name:'Novelty',c:'#6fd0d8',d:'M12 3v5 M12 16v5 M3 12h5 M16 12h5 M6.5 6.5l2.5 2.5 M15 15l2.5 2.5 M17.5 6.5L15 9 M9 15l-2.5 2.5',line:'You kept what was new.'},
+  company:{name:'Company',c:'#f3b98a',d:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M16 11a3 3 0 1 0 0-6 M3 20c0-3 3-5 6-5s6 2 6 5 M16 15c2.5 0 5 1.6 5 5',line:'You kept the moments with people in them.'},
+  skill:{name:'Skill',c:'#a7c48a',d:'M14.5 4.5l5 5-3 3-5-5z M11.5 7.5L4 15l5 5 7.5-7.5',line:'You kept what you’re getting better at.'},
+  taste:{name:'Taste',c:'#b79be0',d:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4',line:'You kept what you know is really good.'},
+  direction:{name:'Direction',c:'#7fb2f0',d:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z',line:'You kept what’s part of where your life is heading.'},
+};
+const POOL = {
+  delight:['A slow coffee','Sleeping in','A hot shower after cold','Ice cream on a walk','A nap in the sun','Your favorite song, loud'],
+  setting:['A table by the window','The beach at dusk','Your old neighborhood','A cabin with no signal','The corner bookstore','A rooftop at night'],
+  novelty:['A city you’ve never seen','A dish you can’t pronounce','A trail you’ve never tried','A class in something new','A random museum','Getting a little lost'],
+  company:['Call your brother','Dinner with old friends','A long walk with your partner','Game night','Coffee with your mom','Your kid’s game'],
+  skill:['Practice guitar','Bake the bread again','Fix the bike yourself','Chess, one more game','Run your best mile','Learn the hard chord'],
+  taste:['The perfect espresso','A record, start to finish','The tasting menu','A great used book','The good olive oil','A film you’ve rewatched'],
+  direction:['Work on the big project','Mentor someone','Volunteer Saturday','Write the first page','Save for the plan','Show up for the cause'],
+};
+const BASKET = 5, ROUND_MS = 45000, CUT_MS = 6000;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s) => document.querySelector(s);
+const icon = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+const chip = (k) => `<span class="chip" style="--c:${WHYS[k].c}">${icon(WHYS[k].d)}${WHYS[k].name}</span>`;
+const lc = (t) => t[0].toLowerCase() + t.slice(1);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+const app = $('#app');
+let G = null, raf = 0;
+
+function deal(per) {
+  return shuffle(Object.keys(POOL).flatMap((k) => shuffle(POOL[k].slice()).slice(0, per).map((t) => ({ t, k }))));
+}
+function stop() { cancelAnimationFrame(raf); if (G) G.over = true; app.classList.remove('scroll'); }
+function toast(msg) { document.querySelectorAll('.toast').forEach((t) => t.remove()); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2300); }
+function pop(field, x, y, text) { const p = document.createElement('div'); p.className = 'pop'; p.textContent = text; p.style.left = x + 'px'; p.style.top = y + 'px'; field.appendChild(p); setTimeout(() => p.remove(), 800); }
+function fly(fromEl, toEl, text, rotate, done) {
+  const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+  const c = document.createElement('div'); c.className = 'fly'; c.textContent = text;
+  Object.assign(c.style, { left: a.left + 'px', top: a.top + 'px', width: a.width + 'px', height: a.height + 'px' });
+  if (rotate) c.style.rotate = '180deg';
+  document.body.appendChild(c);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    c.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px)`;
+    c.style.width = b.width + 'px'; c.style.height = b.height + 'px'; c.style.opacity = '.4';
+  }));
+  setTimeout(() => { c.remove(); done && done(); }, reduce ? 0 : 360);
+}
+function tick(now) { const dt = Math.min(50, now - G.last); G.last = now; G.gt += dt * G.scale; return G.gt / ROUND_MS; }
+
+/* ---------- the list: moments you might actually do ---------- */
+function list() { const wk = Date.now() - 7 * 864e5; return load('keep.list', []).filter((it) => it.at > wk); }
+function todayBlock() {
+  const items = list(); if (!items.length) return '';
+  const today = dayKey();
+  return `<div class="today"><div class="eyebrow">From your basket</div>
+    <p class="faint small" style="margin-bottom:4px">Try one if the day allows.</p>
+    ${items.map((it, i) => `<button class="todo ${i ? '' : 'first'} ${it.done ? 'done' : ''}" data-todo="${it.id}" aria-pressed="${!!it.done}" style="--c:${WHYS[it.k].c}">
+      <span class="tick">${it.done ? '✓' : ''}</span><span class="tt">${esc(it.t)}</span>${dayKey(it.at) === today ? '' : `<span class="day">${new Date(it.at).toLocaleDateString(undefined, { weekday: 'short' })}</span>`}</button>`).join('')}
+  </div>`;
+}
+function toggleTodo(id) {
+  const all = load('keep.list', []), it = all.find((x) => x.id === id); if (!it) return;
+  it.done = !it.done; save('keep.list', all);
+  if (it.done) toast(`Done. A ${WHYS[it.k].name.toLowerCase()} moment.`);
+  home();
+}
+
+/* ---------- home ---------- */
+function home() {
+  stop();
+  const block = todayBlock();
+  app.innerHTML = `
+    <div class="eyebrow">A working prototype</div>
+    <div class="spacer"></div>
+    <h1>Keep<em>.</em></h1>
+    <p class="muted" style="font-size:17px;max-width:30ch">Moments fall. Tap the ones you’d keep. Your basket holds five.</p>
+    <p class="faint">Don’t think. It gets faster.</p>
+    <div class="spacer"></div>
+    ${block}
+    <div class="stack"><button class="btn" data-go="solo">Drop</button><button class="btn ghost" data-go="duel">Duel · two thumbs, one phone</button></div>`;
+  if (block) app.classList.add('scroll');
+  app.onclick = (e) => {
+    const t = e.target.closest('[data-go],[data-todo]'); if (!t) return;
+    if (t.dataset.todo) toggleTodo(t.dataset.todo);
+    else t.dataset.go === 'solo' ? solo() : duelSetup();
+  };
+}
+
+/* ---------- solo ---------- */
+function solo() {
+  stop(); app.onclick = null;
+  app.innerHTML = `
+    <div class="hud"><span class="eyebrow" id="hint">Keep five</span><span class="faint" id="left" style="font-size:12px;font-variant-numeric:tabular-nums">45s</span></div>
+    <div class="timer"><i id="bar"></i></div>
+    <div id="field" aria-label="Falling moments. Tap to keep."></div>
+    <div class="basket" id="basket">${'<div class="slot"></div>'.repeat(BASKET)}</div>`;
+  const field = $('#field');
+  G = { mode: 'solo', deck: deal(3), live: [], kept: [], gone: [], swaps: [], gt: 0, last: performance.now(), scale: 1, next: 0, lastLane: -1, over: false, pending: null, field, W: field.clientWidth, H: field.clientHeight };
+  field.onpointerdown = soloTap;
+  $('#basket').onpointerdown = slotTap;
+  raf = requestAnimationFrame(soloLoop);
+}
+
+function spawnFall() {
+  const c = G.deck.shift(); if (!c) return;
+  const el = document.createElement('div');
+  el.className = 'm'; el.textContent = c.t; el.setAttribute('role', 'button');
+  G.field.appendChild(el);
+  const w = el.offsetWidth, h = el.offsetHeight;
+  let lane; do { lane = Math.random() * 3 | 0; } while (lane === G.lastLane);
+  G.lastLane = lane;
+  const slack = Math.max(0, G.W - w);
+  const x = Math.round(Math.min(slack, Math.max(0, slack * (lane / 2) + (Math.random() - .5) * 30)));
+  const m = { ...c, el, x, h, born: G.gt, dur: 5600 - 2600 * (G.gt / ROUND_MS) };
+  el._m = m; G.live.push(m);
+}
+
+function soloLoop(now) {
+  if (G.over) return;
+  const p = Math.min(1, tick(now));
+  $('#bar').style.transform = `scaleX(${1 - p})`;
+  $('#left').textContent = `${Math.max(0, Math.ceil((ROUND_MS - G.gt) / 1000))}s`;
+  if (G.gt >= G.next && G.deck.length) { spawnFall(); G.next = G.gt + 1500 - 750 * p; }
+  for (const m of G.live.slice()) {
+    const f = (G.gt - m.born) / m.dur;
+    m.el.style.transform = `translate(${m.x}px, ${-m.h + f * (G.H + m.h)}px)`;
+    if (f >= 1) {
+      if (G.pending === m) cancelPending();
+      m.left = G.gt; G.gone.push(m); G.live.splice(G.live.indexOf(m), 1); m.el.remove();
+    }
+  }
+  if (G.gt >= ROUND_MS || (!G.deck.length && !G.live.length)) return finishSolo();
+  raf = requestAnimationFrame(soloLoop);
+}
+
+function soloTap(e) {
+  if (G.over) return;
+  const el = e.target.closest('.m'), m = el && el._m;
+  if (G.pending) { // choosing what to throw back
+    const was = G.pending; cancelPending();
+    if (m && m !== was) setPending(m);
+    return;
+  }
+  if (!m) return;
+  m.dwell = (G.gt - m.born) / m.dur; m.tapped = G.gt;
+  if (G.kept.length < BASKET) keepInto(m, G.kept.length);
+  else setPending(m);
+}
+
+function keepInto(m, i) {
+  G.live.splice(G.live.indexOf(m), 1);
+  G.kept[i] = m;
+  try { navigator.vibrate?.(12); } catch {}
+  const s = document.querySelectorAll('#basket .slot')[i];
+  s.classList.remove('full', 'out'); s.textContent = '';
+  fly(m.el, s, m.t, false, () => { s.textContent = m.t; s.classList.add('full'); });
+  m.el.remove();
+  if (G.kept.length === BASKET) $('#hint').textContent = 'Full. Tap a moment to swap it in';
+}
+
+function setPending(m) {
+  G.pending = m; G.scale = .12; m.el.classList.add('pending');
+  $('#basket').classList.add('choosing'); $('#hint').textContent = 'Tap one to throw back';
+}
+function cancelPending() {
+  if (!G.pending) return;
+  G.pending.el.classList.remove('pending'); G.pending = null; G.scale = 1;
+  $('#basket').classList.remove('choosing'); $('#hint').textContent = 'Full. Tap a moment to swap it in';
+}
+function slotTap(e) {
+  if (!G.pending || G.over) return;
+  const slots = [...document.querySelectorAll('#basket .slot')], i = slots.indexOf(e.target.closest('.slot'));
+  if (i < 0) return;
+  const out = G.kept[i], inn = G.pending;
+  cancelPending();
+  G.swaps.push({ out, inn }); out.thrown = true; G.gone.push(out);
+  slots[i].classList.remove('full'); slots[i].classList.add('out');
+  setTimeout(() => { if (G.live.includes(inn)) keepInto(inn, i); }, reduce ? 0 : 200);
+}
+
+function finishSolo() {
+  if (G.over) return; G.over = true; cancelAnimationFrame(raf); cancelPending();
+  G.live.forEach((m) => { m.left = G.gt; G.gone.push(m); });
+  save('keep.rounds', [...load('keep.rounds', []), { kept: G.kept.map((m) => m.k), at: Date.now() }].slice(-50));
+  setTimeout(() => (G.kept.length >= 2 ? finalCut() : soloResults()), 500);
+}
+
+/* ---------- final cut ---------- */
+function finalCut() {
+  // instinct against deliberation: your fastest grab and your slowest
+  const by = G.kept.slice().sort((a, b) => a.dwell - b.dwell);
+  const pair = shuffle([by[0], by[by.length - 1]]);
+  G.pair = pair;
+  app.innerHTML = `
+    <div class="eyebrow">Final cut</div>
+    <h2>Only one <em>makes it.</em></h2>
+    <p class="muted">If the day only had room for one.</p>
+    <div class="spacer"></div>
+    <div class="cut"><button class="cutc" data-c="0">${esc(pair[0].t)}</button><div class="or">or</div><button class="cutc" data-c="1">${esc(pair[1].t)}</button></div>
+    <div class="spacer"></div>
+    <div class="timer"><i id="cbar"></i></div>`;
+  const t0 = performance.now(); let chosen = false;
+  const end = (i) => {
+    if (chosen) return; chosen = true; cancelAnimationFrame(raf);
+    const cs = document.querySelectorAll('.cutc');
+    if (i == null) { G.keeper = null; cs.forEach((c) => c.classList.add('lose')); }
+    else { G.keeper = pair[i]; G.cutLoser = pair[1 - i]; cs[i].classList.add('win'); cs[1 - i].classList.add('lose'); }
+    setTimeout(soloResults, 700);
+  };
+  const run = (now) => {
+    const p = (now - t0) / CUT_MS;
+    $('#cbar').style.transform = `scaleX(${Math.max(0, 1 - p)})`;
+    if (p >= 1) return end(null);
+    raf = requestAnimationFrame(run);
+  };
+  raf = requestAnimationFrame(run);
+  app.onclick = (e) => { const b = e.target.closest('[data-c]'); if (b) end(+b.dataset.c); };
+}
+
+/* ---------- solo results ---------- */
+function soloResults() {
+  app.onclick = null;
+  const kept = G.kept, gone = G.gone;
+  const count = {}; kept.forEach((m) => (count[m.k] = (count[m.k] || 0) + 1));
+  const top = Object.entries(count).sort((a, b) => b[1] - a[1]);
+  let head;
+  if (!kept.length) head = 'You let everything fall.';
+  else if (top[0][1] >= 3) head = WHYS[top[0][0]].line;
+  else if (top.length >= 2 && top[0][1] === 2 && top[1][1] === 2) head = `You kept ${WHYS[top[0][0]].name.toLowerCase()} and ${WHYS[top[1][0]].name.toLowerCase()}, two of each.`;
+  else if (top.length === kept.length && kept.length > 2) head = `${kept.length} keeps, ${kept.length} different whys.`;
+  else head = `You leaned toward ${WHYS[top[0][0]].name.toLowerCase()}.`;
+
+  const lines = [];
+  if (G.pair) lines.push(G.keeper
+    ? `In the final cut you kept <em>${lc(G.keeper.t)}</em> over <em>${lc(G.cutLoser.t)}</em>.`
+    : `In the final cut you couldn’t choose between <em>${lc(G.pair[0].t)}</em> and <em>${lc(G.pair[1].t)}</em>.`);
+  if (G.swaps.length) { const s = G.swaps[G.swaps.length - 1]; lines.push(`You threw back <em>${lc(s.out.t)}</em> for <em>${lc(s.inn.t)}</em>.`); }
+  if (kept.length > 1) {
+    const slow = kept.reduce((a, b) => (b.dwell > a.dwell ? b : a));
+    const rival = gone.filter((g) => !g.thrown && g.born < slow.tapped && (g.left ?? Infinity) > slow.born)
+      .sort((a, b) => Math.abs(a.born - slow.born) - Math.abs(b.born - slow.born))[0];
+    if (rival) lines.push(`You hesitated longest over <em>${lc(slow.t)}</em>, and let <em>${lc(rival.t)}</em> fall.`);
+  }
+  if (kept.length && lines.length < 3) {
+    const fast = kept.reduce((a, b) => (b.dwell < a.dwell ? b : a));
+    lines.push(`You grabbed <em>${lc(fast.t)}</em> almost the moment it appeared.`);
+  }
+
+  const all = load('keep.rounds', []), tally = {};
+  all.forEach((r) => r.kept.forEach((k) => (tally[k] = (tally[k] || 0) + 1)));
+  const order = G.keeper ? [G.keeper, ...kept.filter((m) => m !== G.keeper)] : kept;
+  G.picks = new Set(G.keeper ? [0] : []);
+
+  app.classList.add('scroll');
+  app.innerHTML = `
+    <div class="eyebrow">Your basket · ${kept.length} of ${BASKET}</div>
+    <h2>${head}</h2>
+    <div class="lines">${lines.slice(0, 3).map((l) => `<div class="line">${l}</div>`).join('')}</div>
+    <div class="klist">${order.map((m) => `<div class="krow"><b>${esc(m.t)}${m === G.keeper ? '<small>FINAL CUT</small>' : ''}</b>${chip(m.k)}</div>`).join('')}</div>
+    ${kept.length ? `<div class="rule bring" id="bring">
+      <div class="eyebrow">Bring one into today?</div>
+      <p class="faint small">Pick anything you might actually do. It waits on the home screen for a week.</p>
+      <div class="picks">${order.map((m, i) => `<button class="pick ${G.picks.has(i) ? 'on' : ''}" data-pick="${i}" aria-pressed="${G.picks.has(i)}">${esc(m.t)}</button>`).join('')}</div>
+      <button class="btn ghost sm" id="add"></button>
+    </div>` : ''}
+    ${all.length > 1 ? `<div class="rule"><div class="eyebrow" style="margin-bottom:8px">Across ${all.length} rounds</div>
+      <div class="tally">${Object.entries(tally).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span style="--c:${WHYS[k].c}">${WHYS[k].name} ${n}</span>`).join('')}</div></div>` : ''}
+    <div class="spacer"></div>
+    <div style="display:flex;gap:10px"><button class="btn ghost" data-r="home" style="flex:1">Home</button><button class="btn" data-r="again" style="flex:2">Drop again</button></div>`;
+  const addLabel = () => { const b = $('#add'); if (b) b.textContent = G.picks.size ? `Add ${G.picks.size} to today` : 'Not today'; };
+  addLabel();
+  app.onclick = (e) => {
+    const t = e.target.closest('[data-pick],[data-r],#add'); if (!t) return;
+    if (t.dataset.pick != null) {
+      const i = +t.dataset.pick; G.picks.has(i) ? G.picks.delete(i) : G.picks.add(i);
+      t.classList.toggle('on'); t.setAttribute('aria-pressed', G.picks.has(i)); addLabel();
+    } else if (t.id === 'add') {
+      if (G.picks.size) {
+        const items = [...G.picks].map((i) => ({ id: Math.random().toString(36).slice(2, 9), t: order[i].t, k: order[i].k, at: Date.now(), done: false }));
+        save('keep.list', [...load('keep.list', []), ...items].slice(-30));
+        $('#bring').innerHTML = `<div class="eyebrow">On your list</div><p class="line">${items.map((x) => esc(x.t)).join(' · ')}</p><p class="faint small">It’s on the home screen. Tick it off if it happens.</p>`;
+      } else $('#bring').remove();
+    } else if (t.dataset.r === 'again') solo();
+    else home();
+  };
+}
+
+/* ---------- duel ---------- */
+function duelSetup() {
+  stop();
+  const names = load('keep.names', ['', '']);
+  app.innerHTML = `
+    <div class="eyebrow">Duel</div>
+    <h2>Two thumbs.<br><em>One phone.</em></h2>
+    <p class="muted">Lay the phone flat between you. Moments slide across the middle. Tap your half of a moment to grab it. If you both want it, the faster thumb wins.</p>
+    <div><label for="n0">Bottom player</label><input id="n0" maxlength="14" placeholder="Name" value="${esc(names[0])}" autocomplete="off"></div>
+    <div><label for="n1">Top player</label><input id="n1" maxlength="14" placeholder="Name" value="${esc(names[1])}" autocomplete="off"></div>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:10px"><button class="btn ghost" data-d="home" style="flex:1">Back</button><button class="btn" data-d="go" style="flex:2">Start</button></div>`;
+  app.onclick = (e) => {
+    const t = e.target.closest('[data-d]'); if (!t) return;
+    if (t.dataset.d === 'home') return home();
+    const n = [$('#n0').value.trim() || 'Bottom', $('#n1').value.trim() || 'Top'];
+    save('keep.names', [$('#n0').value.trim(), $('#n1').value.trim()]);
+    duel(n);
+  };
+}
+
+function duel(names) {
+  stop(); app.onclick = null;
+  const side = (p) => `<div class="side ${p ? 'top' : ''}"><div class="basket" id="b${p}">${'<div class="slot"></div>'.repeat(BASKET)}</div>
+    <div class="who"><span>${esc(names[p])}</span><span id="c${p}">0 of ${BASKET}</span></div></div>`;
+  app.innerHTML = `${side(1)}<div id="field" class="duel"><div class="mid"><i id="bar"></i></div></div>${side(0)}`;
+  const field = $('#field');
+  G = { mode: 'duel', names, deck: deal(4), live: [], baskets: [[], []], gone: [], fights: [], gt: 0, last: performance.now(), scale: 1, next: 0, lane: 0, over: false, field, W: field.clientWidth, H: field.clientHeight };
+  field.onpointerdown = duelTap;
+  raf = requestAnimationFrame(duelLoop);
+}
+
+function spawnSlide() {
+  const c = G.deck.shift(); if (!c) return;
+  const el = document.createElement('div');
+  el.className = 'm d'; el.innerHTML = `<span class="up">${esc(c.t)}</span><span class="dn">${esc(c.t)}</span>`;
+  G.field.appendChild(el);
+  const w = el.offsetWidth, h = el.offsetHeight, lane = G.lane = 1 - G.lane;
+  const m = { ...c, el, w, h, dir: lane ? -1 : 1, y: G.H / 2 - h / 2 + (lane ? 46 : -46), born: G.gt, dur: 4400 - 2000 * (G.gt / ROUND_MS) };
+  el._m = m; G.live.push(m);
+}
+
+function duelLoop(now) {
+  if (G.over) return;
+  const p = Math.min(1, tick(now));
+  $('#bar').style.transform = `scaleX(${1 - p})`;
+  if (G.gt >= G.next && G.deck.length) { spawnSlide(); G.next = G.gt + 1250 - 600 * p; }
+  for (const m of G.live.slice()) {
+    const f = (G.gt - m.born) / m.dur, span = G.W + m.w;
+    const x = m.dir > 0 ? -m.w + f * span : G.W - f * span;
+    m.el.style.transform = `translate(${x}px, ${m.y}px)`;
+    if (f >= 1) { G.gone.push(m); G.live.splice(G.live.indexOf(m), 1); m.el.remove(); }
+  }
+  const full = G.baskets.every((b) => b.length >= BASKET);
+  if (G.gt >= ROUND_MS || full || (!G.deck.length && !G.live.length)) return finishDuel();
+  raf = requestAnimationFrame(duelLoop);
+}
+
+function duelTap(e) {
+  if (G.over) return;
+  const el = e.target.closest('.m'); if (!el) return;
+  const r = el.getBoundingClientRect(), who = e.clientY < r.top + r.height / 2 ? 1 : 0;
+  const fr = G.field.getBoundingClientRect(), px = e.clientX - fr.left, py = e.clientY - fr.top;
+  const m = el._m;
+  if (m.taken) { // the other thumb was a moment too late
+    if (m.taken.by !== who && G.gt - m.taken.at < 450 && !m.fought) { m.fought = true; G.fights.push({ m, winner: m.taken.by }); pop(G.field, px - 30, py - 20, 'too slow'); }
+    return;
+  }
+  if (G.baskets[who].length >= BASKET) { pop(G.field, px - 30, py - 20, 'full'); return; }
+  m.taken = { by: who, at: G.gt };
+  G.baskets[who].push(m); G.live.splice(G.live.indexOf(m), 1);
+  try { navigator.vibrate?.(12); } catch {}
+  const s = document.querySelectorAll(`#b${who} .slot`)[G.baskets[who].length - 1];
+  fly(el, s, m.t, who === 1, () => { s.textContent = m.t; s.classList.add('full'); });
+  $(`#c${who}`).textContent = `${G.baskets[who].length} of ${BASKET}`;
+  el.style.opacity = '0'; // stays tappable for a beat so a late thumb registers as a fight
+  setTimeout(() => el.remove(), 460);
+}
+
+function finishDuel() {
+  if (G.over) return; G.over = true; cancelAnimationFrame(raf);
+  G.live.forEach((m) => G.gone.push(m));
+  setTimeout(duelResults, 500);
+}
+
+function duelResults() {
+  const [a, b] = G.names, bk = G.baskets, fights = G.fights;
+  const wins = [0, 1].map((p) => fights.filter((f) => f.winner === p).length);
+  let head;
+  if (!fights.length) head = 'No fights.<br><em>You wanted different things.</em>';
+  else if (wins[0] === wins[1]) head = `Fights split <em>${wins[0]}–${wins[1]}</em>.`;
+  else { const w = wins[0] > wins[1] ? 0 : 1; head = `${esc(G.names[w])} won <em>${wins[w]} of ${fights.length}</em> fights.`; }
+  const lines = fights.slice(0, 2).map((f) => `${esc(G.names[f.winner])} beat ${esc(G.names[1 - f.winner])} to <em>${lc(f.m.t)}</em>.`);
+  const ks = bk.map((x) => new Set(x.map((m) => m.k)));
+  const shared = [...ks[0]].filter((k) => ks[1].has(k));
+  if (shared.length) lines.push(`You both kept ${shared.map((k) => WHYS[k].name.toLowerCase()).join(' and ')}.`);
+  const neither = Object.keys(WHYS).filter((k) => !ks[0].has(k) && !ks[1].has(k));
+  if (neither.length && lines.length < 3) lines.push(`Neither of you kept a single ${WHYS[neither[0]].name.toLowerCase()} moment.`);
+  const col = (p) => `<div><div class="eyebrow" style="margin-bottom:4px">${esc(G.names[p])}</div><div class="klist">${bk[p].map((m) => `<div class="krow"><b>${esc(m.t)}</b>${chip(m.k)}</div>`).join('') || '<p class="faint small">Nothing kept</p>'}</div></div>`;
+  app.classList.add('scroll');
+  app.innerHTML = `
+    <div class="eyebrow">Duel · ${esc(a)} and ${esc(b)}</div>
+    <h2>${head}</h2>
+    <div class="lines">${lines.map((l) => `<div class="line">${l}</div>`).join('')}</div>
+    <div class="cols">${col(0)}${col(1)}</div>
+    <div class="spacer"></div>
+    <div style="display:flex;gap:10px"><button class="btn ghost" data-r="home" style="flex:1">Home</button><button class="btn" data-r="again" style="flex:2">Rematch</button></div>`;
+  app.onclick = (e) => { const t = e.target.closest('[data-r]'); if (!t) return; t.dataset.r === 'again' ? duel(G.names) : home(); };
+}
+
+home();
+</script>

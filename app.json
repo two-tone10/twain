@@ -1,38 +1,51 @@
 {
   "expo": {
-    "name": "Twain",
+    "name": "Keep",
     "slug": "twain",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.lipurposefe.twain"
+      "bundleIdentifier": "com.lipurposefe.keep",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#f0ece4",
+        "backgroundColor": "#05060f",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.lipurposefe.twain"
+      "package": "com.lipurposefe.keep"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "single",
-      "name": "Twain",
-      "themeColor": "#f0ece4",
-      "backgroundColor": "#f0ece4"
+      "name": "Keep",
+      "themeColor": "#05060f",
+      "backgroundColor": "#05060f"
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#05060f"
+        }
+      ],
+      "expo-status-bar"
     ],
     "scheme": "twain",
-    "backgroundColor": "#f0ece4",
+    "backgroundColor": "#05060f",
     "extra": {
       "router": {},
       "eas": {

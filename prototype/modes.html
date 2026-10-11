@@ -1,0 +1,250 @@
+<title>Twain Play Modes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Layout: two phone mockups side by side, stacked at phone width. Night Salon is dark by design. */
+:root{
+  --ground:#15111d; --panel:#1d1727; --card:#f3ead9; --card-ink:#15111d;
+  --ink:#efe6d6; --dim:#b9ae9c; --faint:#8a8074; --line:rgba(239,230,214,.16);
+  --gold:#d8b46a; --jade:#74c7a6;
+  --serif:'Bodoni Moda','Didot',Georgia,serif; --sans:'Jost','Avenir Next',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;padding:28px 16px 48px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:8px;max-width:620px}
+.eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,42px);line-height:1.08;text-wrap:balance}
+h1 em,h2 em{color:var(--gold)}
+.muted{color:var(--dim)} .faint{color:var(--faint)}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,370px),1fr));gap:32px 28px}
+.mode{display:flex;flex-direction:column;gap:12px;min-width:0}
+.mode h2{margin:0;font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.1}
+.mode p{margin:0;max-width:52ch}
+.phone{width:100%;max-width:380px;height:760px;border-radius:34px;border:1px solid var(--line);background:var(--ground);box-shadow:0 30px 60px rgba(0,0,0,.45),inset 0 0 0 6px #0f0c15;padding:26px 22px 22px;display:flex;flex-direction:column;gap:14px;overflow:hidden;position:relative}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.scr h2,.phone h2{margin:0;font-family:var(--serif);font-weight:400;font-size:27px;line-height:1.12;text-align:center;text-wrap:balance}
+.spacer{flex:1}
+.btn{all:unset;cursor:pointer;text-align:center;padding:15px;border-radius:999px;background:var(--gold);color:var(--card-ink);font-weight:600;font-size:16px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--dim)}
+.btn[disabled]{background:#4a4252;cursor:default}
+.btn:focus-visible,.chip:focus-visible,.opt:focus-visible,.tog:focus-visible{outline:2px solid var(--jade);outline-offset:3px}
+.moment{align-self:center;width:210px;min-height:250px;border-radius:16px;background:var(--card);color:var(--card-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px 16px;box-shadow:0 18px 40px rgba(0,0,0,.5);text-align:center}
+.moment b{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.12}
+.moment span{font-size:9px;letter-spacing:2px;color:#6d6458}
+.panel{border-radius:14px;background:var(--panel);border:1px solid var(--line);padding:12px 14px}
+.count{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.count .n{font-family:var(--serif);font-size:150px;line-height:1;color:var(--gold);animation:pop .8s ease-out}
+.count .say{font-family:var(--serif);font-style:italic;font-size:40px;line-height:1.1;color:var(--gold);animation:pop .5s ease-out}
+@keyframes pop{from{transform:scale(1.35);opacity:.2}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.count .n,.count .say{animation:none}}
+.chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.chip{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--faint);text-align:center}
+.chip i{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--c);color:var(--c);display:flex;align-items:center;justify-content:center}
+.chip svg,.wi svg{width:17px;height:17px}
+.chip.on i{background:var(--c);color:var(--card-ink)} .chip.on{color:var(--ink)}
+.who{font-size:13px;color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.tog{all:unset;cursor:pointer;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--faint)}
+.tog.on{border-color:var(--jade);color:var(--jade)}
+.prompt{border-top:1px solid rgba(216,180,106,.3);padding-top:10px}
+.prompt .q{font-family:var(--serif);font-style:italic;font-size:17px;line-height:1.35}
+.clock{font-size:10px;letter-spacing:3px;color:var(--gold)}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{all:unset;cursor:pointer;border-radius:16px;background:var(--card);color:var(--card-ink);padding:18px 16px;font-family:var(--serif);font-size:20px;line-height:1.2;border:2px solid transparent;transition:transform .15s}
+.opt:hover{transform:translateY(-2px)}
+.opt.on{border-color:var(--gold);box-shadow:0 0 0 3px rgba(216,180,106,.25)}
+.or{text-align:center;font-family:var(--serif);font-style:italic;color:var(--faint)}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots span{width:7px;height:7px;border-radius:50%;background:var(--line)} .dots span.on{background:var(--gold)}
+.day{display:flex;flex-direction:column;gap:8px}
+.slot{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:start;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.slot .t{font-size:11px;color:var(--faint);padding-top:3px;font-variant-numeric:tabular-nums}
+.slot .what{font-family:var(--serif);font-size:16px;line-height:1.25}
+.slot .meta{display:flex;gap:10px;align-items:center;margin-top:4px;font-size:11px}
+.wi{display:inline-flex;align-items:center;gap:4px;color:var(--c)}
+.hit{color:var(--jade)} .miss{color:var(--faint)}
+.mix{display:flex;flex-wrap:wrap;gap:6px}
+.mix span{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--c);color:var(--c)}
+.big{font-family:var(--serif);font-size:17px;line-height:1.35}
+.note{font-size:13px;color:var(--faint);max-width:52ch}
+.note b{color:var(--dim);font-weight:500}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Twain · two other ways to play</div>
+    <h1>Not a card game.<br><em>Same seven whys.</em></h1>
+    <p class="muted" style="margin:0">Both mockups work. Tap through each one as Anthony and Maya.</p>
+  </header>
+
+  <div class="modes">
+    <section class="mode">
+      <div class="eyebrow">Mode A</div>
+      <h2>Say it on three</h2>
+      <p class="muted">The phone lies on the table between you. It shows a moment and counts you in, and you both say your answers out loud at the same time. The phone only keeps score.</p>
+      <div class="phone" id="m3" aria-live="polite"></div>
+      <p class="note"><b>Why it’s fun:</b> no passing, no hiding, and the reveal happens at the same moment, out loud. It works at dinner, in the car, or with a group.</p>
+    </section>
+
+    <section class="mode">
+      <div class="eyebrow">Mode B</div>
+      <h2>Plan a free Saturday</h2>
+      <p class="muted">There are no labels to pick. You make four honest choices about a free day, and each one quietly carries a why. Your partner predicts your day first.</p>
+      <div class="phone" id="sat" aria-live="polite"></div>
+      <p class="note"><b>Why it’s insightful:</b> it watches what you choose instead of asking what you value. You see the whys only after you’ve chosen.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+const WHYS = [
+  {key:'delight',name:'Delight',c:'#ef8f9f',d:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z'},
+  {key:'setting',name:'Setting',c:'#d9b26a',d:'M4 11l8-7 8 7v9H4z M10 20v-5h4v5'},
+  {key:'novelty',name:'Novelty',c:'#6fd0d8',d:'M12 3v5 M12 16v5 M3 12h5 M16 12h5 M6.5 6.5l2.5 2.5 M15 15l2.5 2.5 M17.5 6.5L15 9 M9 15l-2.5 2.5'},
+  {key:'company',name:'Company',c:'#f3b98a',d:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M16 11a3 3 0 1 0 0-6 M3 20c0-3 3-5 6-5s6 2 6 5 M16 15c2.5 0 5 1.6 5 5'},
+  {key:'skill',name:'Skill',c:'#a7c48a',d:'M14.5 4.5l5 5-3 3-5-5z M11.5 7.5L4 15l5 5 7.5-7.5'},
+  {key:'taste',name:'Taste',c:'#b79be0',d:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4'},
+  {key:'direction',name:'Direction',c:'#7fb2f0',d:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z'},
+];
+const icon = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+const wi = (i) => `<span class="wi" style="--c:${WHYS[i].c}">${icon(WHYS[i].d)}${WHYS[i].name}</span>`;
+const N = ['Anthony', 'Maya'];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Mode A: Say it on three ---------- */
+const MOMENTS3 = ['Cooking dinner for friends', 'A morning run', 'The farmers market'];
+const A = { i: 0, screen: 'moment', n: 3, phase: 'guess', said: [null, null], read: [false, false], score: [0, 0], timer: null };
+const m3 = document.getElementById('m3');
+
+function countdown(phase) {
+  clearTimeout(A.timer);
+  Object.assign(A, { screen: 'count', phase, n: 3 });
+  const tick = () => {
+    renderA();
+    if (A.n === 0) { A.timer = setTimeout(() => { A.screen = phase === 'guess' ? 'between' : 'record'; renderA(); }, reduce ? 600 : 1300); return; }
+    A.timer = setTimeout(() => { A.n--; tick(); }, reduce ? 350 : 800);
+  };
+  tick();
+}
+
+function renderA() {
+  const m = MOMENTS3[A.i % MOMENTS3.length];
+  const head = `<div class="row"><span class="eyebrow">Moment ${A.i + 1}</span><span class="muted" style="font-size:12px">${N[0]} ${A.score[0]} · ${N[1]} ${A.score[1]}</span></div>`;
+  let h = '';
+  if (A.screen === 'moment') {
+    h = `${head}<h2>Read it <em>out loud.</em></h2>
+      <div class="moment"><b>${m}</b><span>A MOMENT</span></div>
+      <div class="panel"><div class="eyebrow" style="margin-bottom:4px">Round one</div><div class="big">On three, say the why you think the <em style="color:var(--gold)">other</em> person will pick.</div></div>
+      <div class="spacer"></div><button class="btn" data-a="go">Count us in</button>`;
+  } else if (A.screen === 'count') {
+    const label = A.phase === 'guess' ? 'Say their why' : 'Say your why';
+    h = `${head}<div class="count">${A.n > 0 ? `<div class="n" key="${A.n}">${A.n}</div><div class="faint">${label}…</div>` : `<div class="say">${label}!</div>`}</div>`;
+  } else if (A.screen === 'between') {
+    h = `${head}<h2>Remember what<br>you <em>heard.</em></h2>
+      <div class="moment" style="min-height:150px"><b style="font-size:21px">${m}</b></div>
+      <div class="panel"><div class="eyebrow" style="margin-bottom:4px">Round two</div><div class="big">Now on three, say <em style="color:var(--gold)">your own</em> why.</div></div>
+      <div class="spacer"></div><button class="btn" data-a="go2">Count us in</button>`;
+  } else if (A.screen === 'record') {
+    const ready = A.said[0] != null && A.said[1] != null;
+    const block = (p) => `<div class="panel"><div class="who"><span><b style="color:var(--ink);font-weight:500">${N[p]}</b> said</span>
+        <button class="tog ${A.read[p] ? 'on' : ''}" data-a="read" data-p="${p}" aria-pressed="${A.read[p]}">${A.read[p] ? '✓ ' : ''}${N[1 - p]} called it</button></div>
+      <div class="chips">${WHYS.map((w, i) => `<button class="chip ${A.said[p] === i ? 'on' : ''}" style="--c:${w.c}" data-a="said" data-p="${p}" data-w="${i}" aria-label="${w.name}"><i>${icon(w.d)}</i>${w.name}</button>`).join('')}</div></div>`;
+    h = `${head}<h2>What did<br><em>you say?</em></h2>${block(0)}${block(1)}
+      <p class="faint" style="margin:0;font-size:12px;text-align:center">Tap each why you heard. Mark who guessed right in round one.</p>
+      <div class="spacer"></div><button class="btn" data-a="rec" ${ready ? '' : 'disabled'}>Talk about it</button>`;
+  } else if (A.screen === 'talk') {
+    const [a, b] = A.said, same = a === b;
+    const q = same ? `You both said ${WHYS[a].name}. Is the reason underneath the same?`
+      : `${N[0]}, ask ${N[1]}: what makes ${m.toLowerCase()} about ${WHYS[b].name.toLowerCase()} for you?`;
+    h = `${head}<h2>${same ? 'Same why.<br><em>Same reason?</em>' : 'Same moment.<br><em>Different why.</em>'}</h2>
+      <div class="moment" style="min-height:140px"><b style="font-size:21px">${m}</b></div>
+      <div class="panel" style="display:flex;flex-direction:column;gap:8px">
+        <div class="row"><span>${N[0]}</span>${wi(a)}</div><div class="row"><span>${N[1]}</span>${wi(b)}</div></div>
+      <div class="prompt"><div class="eyebrow" style="margin-bottom:4px">Talk about it</div><div class="q">“${q}”</div></div>
+      <div class="spacer"></div><button class="btn" data-a="next">Next moment</button>`;
+  }
+  m3.innerHTML = h;
+}
+
+m3.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-a]'); if (!t || t.disabled) return;
+  const p = +t.dataset.p, a = t.dataset.a;
+  if (a === 'go') countdown('guess');
+  else if (a === 'go2') countdown('own');
+  else if (a === 'said') { A.said[p] = +t.dataset.w; renderA(); }
+  else if (a === 'read') { A.read[p] = !A.read[p]; renderA(); }
+  else if (a === 'rec') { A.read.forEach((r, p) => { if (r) A.score[1 - p]++; }); A.screen = 'talk'; renderA(); }
+  else if (a === 'next') { Object.assign(A, { i: A.i + 1, screen: 'moment', said: [null, null], read: [false, false] }); renderA(); }
+});
+
+/* ---------- Mode B: Plan a free Saturday ---------- */
+const DAY = [
+  { t: '10am', label: 'It’s 10 in the morning and the day is yours.', o: [['Slow coffee and a book, alone', 0], ['A run on a trail you’ve never tried', 2]] },
+  { t: '1pm', label: 'Lunchtime.', o: [['Your usual spot, the corner table', 1], ['Make the bread you’ve been practicing', 4]] },
+  { t: '4pm', label: 'The afternoon opens up.', o: [['Help a friend move into their new place', 3], ['Two hours on the project you care about most', 6]] },
+  { t: '8pm', label: 'Evening.', o: [['The tasting menu you’ve been reading about', 5], ['Takeout and a movie on the couch', 0]] },
+];
+const B = { names: ['Anthony', 'Maya'], screen: 'intro', who: 1, slot: 0, sel: null, pred: [], own: [] };
+const sat = document.getElementById('sat');
+
+function renderB() {
+  let h = '';
+  const subject = B.names[0], predictor = B.names[1];
+  if (B.screen === 'intro') {
+    h = `<div class="eyebrow">A free Saturday</div><h2>Four choices.<br><em>No wrong day.</em></h2>
+      <div class="panel big">${subject} plans a free Saturday, one choice at a time. First, ${predictor} predicts every choice in secret.</div>
+      <div class="day">${DAY.map((s) => `<div class="slot"><span class="t">${s.t}</span><span class="faint">${s.o[0][0]} <i>or</i> ${s.o[1][0].toLowerCase()}</span></div>`).join('')}</div>
+      <div class="spacer"></div><button class="btn" data-b="start">${predictor}, predict first</button>`;
+  } else if (B.screen === 'pick') {
+    const s = DAY[B.slot], predicting = B.who === 1;
+    h = `<div class="row"><span class="clock">SATURDAY · ${s.t.toUpperCase()}</span><div class="dots">${DAY.map((_, i) => `<span class="${i <= B.slot ? 'on' : ''}"></span>`).join('')}</div></div>
+      <h2>${predicting ? `${predictor}, what will <em>${subject}</em> choose?` : `${subject}, what do <em>you</em> choose?`}</h2>
+      <p class="muted center" style="margin:0;text-align:center">${s.label}</p>
+      <div class="spacer"></div>
+      <div class="opts">${s.o.map((o, i) => `${i ? '<div class="or">or</div>' : ''}<button class="opt ${B.sel === i ? 'on' : ''}" data-b="opt" data-i="${i}" aria-pressed="${B.sel === i}">${o[0]}</button>`).join('')}</div>
+      <div class="spacer"></div>
+      <p class="faint" style="margin:0;font-size:12px;text-align:center">${predicting ? `You score a point for each choice you predict.` : `Pick what you’d actually do, not what sounds good.`}</p>
+      <button class="btn" data-b="lock" ${B.sel == null ? 'disabled' : ''}>${B.slot < 3 ? 'Next' : predicting ? 'Lock my predictions' : 'That’s my Saturday'}</button>`;
+  } else if (B.screen === 'pass') {
+    h = `<div class="count" style="gap:14px"><div class="eyebrow">No peeking</div>
+      <h2>Pass the phone<br>to <em>${subject}</em>.</h2><p class="muted" style="margin:0">${predictor} has predicted your whole day.</p></div>
+      <button class="btn" data-b="ready">I’m ${subject}. Plan my day</button>`;
+  } else if (B.screen === 'reveal') {
+    const whys = B.own.map((o, i) => DAY[i].o[o][1]);
+    const hits = B.own.filter((o, i) => o === B.pred[i]).length;
+    const counts = {}; whys.forEach((w) => (counts[w] = (counts[w] || 0) + 1));
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const lead = top[0][1] > 1 ? `Your day came back to <em>${WHYS[top[0][0]].name.toLowerCase()}</em>.` : `Four choices, <em>four different whys.</em>`;
+    const miss = B.own.findIndex((o, i) => o !== B.pred[i]);
+    const q = miss >= 0 ? `${predictor}, why did you think ${subject} would choose “${DAY[miss].o[B.pred[miss]][0].toLowerCase()}”?`
+      : `${subject}, which of these would you keep if the day got cut in half?`;
+    h = `<div class="row"><span class="eyebrow">${subject}’s Saturday</span><span class="muted" style="font-size:12px">${predictor} read ${hits} of 4</span></div>
+      <h2 style="font-size:24px">${lead}</h2>
+      <div class="day">${DAY.map((s, i) => `<div class="slot"><span class="t">${s.t}</span><div><div class="what">${s.o[B.own[i]][0]}</div>
+        <div class="meta">${wi(s.o[B.own[i]][1])}<span class="${B.pred[i] === B.own[i] ? 'hit' : 'miss'}">${B.pred[i] === B.own[i] ? `✓ ${predictor} called it` : `✗ ${predictor} guessed the other`}</span></div></div></div>`).join('')}</div>
+      <div class="mix">${top.map(([w, n]) => `<span style="--c:${WHYS[w].c}">${WHYS[w].name}${n > 1 ? ` ×${n}` : ''}</span>`).join('')}</div>
+      <div class="prompt"><div class="eyebrow" style="margin-bottom:4px">Talk about it</div><div class="q">“${q}”</div></div>
+      <div class="spacer"></div><div class="row" style="gap:10px"><button class="btn ghost" data-b="again" style="flex:1">Play again</button><button class="btn" data-b="swap" style="flex:1">${predictor}’s turn</button></div>`;
+  }
+  sat.innerHTML = h;
+}
+
+sat.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-b]'); if (!t || t.disabled) return;
+  const a = t.dataset.b;
+  if (a === 'start') Object.assign(B, { screen: 'pick', who: 1, slot: 0, sel: null, pred: [], own: [] });
+  else if (a === 'opt') B.sel = +t.dataset.i;
+  else if (a === 'lock') {
+    (B.who === 1 ? B.pred : B.own).push(B.sel); B.sel = null;
+    if (B.slot < 3) B.slot++;
+    else if (B.who === 1) Object.assign(B, { screen: 'pass', who: 0, slot: 0 });
+    else B.screen = 'reveal';
+  } else if (a === 'ready') B.screen = 'pick';
+  else if (a === 'again') B.screen = 'intro';
+  else if (a === 'swap') { B.names.reverse(); B.screen = 'intro'; }
+  renderB();
+});
+
+renderA(); renderB();
+</script>

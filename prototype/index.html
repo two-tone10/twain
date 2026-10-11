@@ -1,0 +1,328 @@
+<title>Twain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centered phone-width column; the ring of seven whys around a single moment card is the hero of every turn. */
+:root{
+  --ground:#15111d; --panel:#1d1727; --card:#f3ead9; --card-ink:#15111d;
+  --ink:#efe6d6; --dim:#b9ae9c; --faint:#8a8074; --line:rgba(239,230,214,.16);
+  --gold:#d8b46a; --jade:#74c7a6;
+  --serif:'Bodoni Moda', 'Didot', Georgia, serif; --sans:'Jost', 'Avenir Next', system-ui, sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+#app{max-width:440px;margin:0 auto;min-height:100%;box-sizing:border-box;padding-inline:18px;padding-block:20px 28px;display:flex;flex-direction:column;gap:14px}
+h1,h2{font-family:var(--serif);font-weight:400;margin:0;text-wrap:balance}
+h1{font-size:34px;line-height:1.08}
+h2{font-size:28px;line-height:1.12}
+em{font-style:italic;color:var(--gold)}
+.eyebrow{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+.muted{color:var(--dim)} .faint{color:var(--faint)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.center{text-align:center}
+.btn{appearance:none;border:0;border-radius:999px;padding:15px 18px;font:600 16px var(--sans);background:var(--gold);color:var(--card-ink);cursor:pointer;width:100%}
+.btn[disabled]{background:#4a4252;color:#9a9088;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:focus-visible,.why:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.spacer{flex:1}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.step{border:1px solid var(--line);border-radius:999px;padding:8px;text-align:center;font-size:11.5px;letter-spacing:.08em;color:var(--faint)}
+.step.on{border-color:var(--gold);color:var(--gold)} .step.on.guess{border-color:var(--jade);color:var(--jade)}
+/* the ring */
+.ring{position:relative;width:min(340px,100%);aspect-ratio:1;margin:0 auto;max-width:100%}
+.ring::before{content:"";position:absolute;inset:12%;border-radius:50%;border:1px solid rgba(216,180,106,.18)}
+.moment{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:39%;aspect-ratio:13/16;border-radius:12px;background:var(--card);color:var(--card-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px;box-sizing:border-box;box-shadow:0 18px 36px rgba(0,0,0,.5);text-align:center}
+.moment b{font-family:var(--serif);font-weight:400;font-size:clamp(14px,4.6vw,18px);line-height:1.15}
+.moment small{font-size:9px;letter-spacing:.2em;color:#6d6458}
+.why{position:absolute;transform:translate(-50%,-50%);width:23%;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:0;color:var(--dim);font:500 11px var(--sans);cursor:pointer}
+.why .dot{width:44px;height:44px;border-radius:50%;box-sizing:border-box;border:2px solid var(--c);display:grid;place-items:center;color:var(--c);transition:transform .15s}
+.why .dot svg{width:21px;height:21px}
+.why.sel .dot{background:var(--c);color:var(--card-ink);transform:scale(1.08)}
+.why.mine .dot{outline:2px solid var(--gold);outline-offset:4px}
+.why.guess .dot{outline:2px dashed var(--jade);outline-offset:4px}
+.why.sel,.why.mine,.why.guess{color:var(--ink)}
+.why.dimmed{opacity:.4}
+.tag{font-size:8.5px;letter-spacing:.1em;padding:2px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.static .why{cursor:default}
+/* hand-off */
+.handoff{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center}
+.mask{width:120px;height:auto}
+/* setup */
+label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+input[type=text]{width:100%;box-sizing:border-box;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--ink);font:500 17px var(--sans)}
+.field{display:flex;flex-direction:column}
+.whylist{display:grid;grid-template-columns:1fr;gap:6px}
+.whylist div{display:flex;gap:10px;align-items:baseline;font-size:13.5px}
+.whylist b{font-weight:600;color:var(--c);min-width:72px}
+/* results */
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.score{border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.score .n{font-family:var(--serif);font-size:42px;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.score.win{border-color:var(--jade);background:rgba(116,199,166,.07)} .score.win .n{color:var(--jade)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:500;font-size:10px;letter-spacing:.14em;color:var(--faint);text-align:left;padding:0 4px 6px}
+td{padding:7px 4px;border-top:1px solid rgba(239,230,214,.08);vertical-align:middle}
+td.card{font-family:var(--serif);font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:5px;color:var(--c);font-size:12px;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.same{font-size:9px;letter-spacing:.12em;color:var(--gold);margin-left:4px}
+.mix{display:flex;flex-direction:column;gap:5px}
+.bar{display:grid;grid-template-columns:76px 1fr 22px;gap:8px;align-items:center;font-size:12px}
+.bar span:nth-child(2){height:8px;border-radius:4px;background:rgba(239,230,214,.07);position:relative;overflow:hidden}
+.bar span:nth-child(2) i{position:absolute;inset:0 auto 0 0;background:var(--c);border-radius:4px}
+.bar span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim)}
+.result{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px}
+.ok{color:var(--jade)} .miss{color:var(--faint)}
+.ask{border-top:1px solid rgba(216,180,106,.3);padding-top:12px;display:flex;flex-direction:column;gap:4px}
+.ask p{margin:0;font-family:var(--serif);font-style:italic;font-size:17px;line-height:1.35}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@keyframes flipin{from{transform:translate(-50%,-50%) rotateY(90deg)}to{transform:translate(-50%,-50%) rotateY(0)}}
+.flipping .moment{animation:flipin .45s ease-out}
+</style>
+
+<div id="app" aria-live="polite"></div>
+
+<script>
+const WHYS = [
+  { key:'delight',   name:'Delight',   full:'Delight',        c:'#ef8f9f', text:'It just feels good. No reason needed.', phrase:'a delight',
+    d:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z' },
+  { key:'setting',   name:'Setting',   full:'Setting',        c:'#d9b26a', text:'It’s about where. The place makes it.', phrase:'about the setting',
+    d:'M4 11l8-7 8 7v9H4z M10 20v-5h4v5' },
+  { key:'novelty',   name:'Novelty',   full:'Novelty',        c:'#6fd0d8', text:'It’s new to me, or takes me somewhere new.', phrase:'about novelty',
+    d:'M12 3v5 M12 16v5 M3 12h5 M16 12h5 M6.5 6.5l2.5 2.5 M15 15l2.5 2.5 M17.5 6.5L15 9 M9 15l-2.5 2.5' },
+  { key:'company',   name:'Company',   full:'Company',        c:'#f3b98a', text:'It’s about who I’m with.', phrase:'about the company',
+    d:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M16 11a3 3 0 1 0 0-6 M3 20c0-3 3-5 6-5s6 2 6 5 M16 15c2.5 0 5 1.6 5 5' },
+  { key:'skill',     name:'Skill',     full:'Skill',          c:'#a7c48a', text:'It’s about doing it well, or getting better at it.', phrase:'about skill',
+    d:'M14.5 4.5l5 5-3 3-5-5z M11.5 7.5L4 15l5 5 7.5-7.5' },
+  { key:'taste',     name:'Taste',     full:'Taste',          c:'#b79be0', text:'I could tell you exactly why it’s good.', phrase:'about taste',
+    d:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4' },
+  { key:'direction', name:'Direction', full:'Life direction', c:'#7fb2f0', text:'It’s part of where my life is heading.', phrase:'part of your life direction',
+    d:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z' },
+];
+const MOMENTS = [
+  'Slow coffee on a Saturday','A morning run','The farmers market','Cooking dinner for friends','Fixing a bike',
+  'Calling your grandmother','Trying a new restaurant','Tutoring a kid','Reading in the sun','A wine tasting',
+  'Learning a song on guitar','A shift at the food pantry','A long walk alone','Planting a garden','A live concert',
+  'Visiting your hometown','Board games with friends','Writing in a journal','A road trip with no plan','Practicing a new language',
+  'Baking bread','Watching the sunset','Coaching a youth team','Rearranging your room','An afternoon at a museum',
+  'Hosting a birthday dinner','Taking a pottery class','Exploring a new city','A hot bath','Planning your week',
+  'Making a gift by hand','A pickup basketball game'
+];
+const PER_GAME = 10;
+
+const icon = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[ch]));
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const store = {
+  get(k, f) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+let S;
+function fresh(names) {
+  return { screen: names ? 'turn' : 'setup', names: names || store.get('twain.names', ['', '']), deck: shuffle(MOMENTS).slice(0, PER_GAME),
+    i: 0, picks: [], turn: 0, step: 1, sel: null, mine: null, saved: false };
+}
+// picks[i] = { own:[a,b], guess:[aGuessOfB, bGuessOfA], first }
+const first = () => S.i % 2;                 // who goes first alternates each card
+const who = () => (S.turn === 0 ? first() : 1 - first());
+const other = (p) => 1 - p;
+const name = (p) => esc(S.names[p] || (p ? 'Player two' : 'Player one'));
+const score = (p) => S.picks.filter((k) => k.guess[p] === k.own[other(p)]).length; // p's correct reads of the other
+
+function ring(opts) {
+  const n = WHYS.length;
+  return `<div class="ring ${opts.static ? 'static' : ''} ${opts.flip ? 'flipping' : ''}">
+    <div class="moment"><b>${esc(opts.card)}</b><small>A MOMENT</small></div>
+    ${WHYS.map((w, i) => {
+      const a = (-90 + i * 360 / n) * Math.PI / 180;
+      const x = 50 + 41 * Math.cos(a), y = 50 + 41 * Math.sin(a);
+      const cls = (opts.cls && opts.cls(i)) || '';
+      const tag = opts.tag ? opts.tag(i) : '';
+      const label = opts.static ? 'div' : 'button';
+      return `<${label} class="why ${cls}" style="left:${x}%;top:${y}%;--c:${w.c}" ${opts.static ? '' : `data-why="${i}" aria-label="${w.full}: ${w.text}"`}>
+        <span class="dot">${icon(w.d)}</span><span>${w.name}</span>${tag}</${label}>`;
+    }).join('')}
+  </div>`;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = ({ setup, turn, pass, flip, end })[S.screen]();
+  const inp = app.querySelector('#p1');
+  if (inp && !S.names[0]) inp.focus({ preventScroll: true });
+}
+
+function setup() {
+  return `
+    <div class="eyebrow">Twain · a game for two</div>
+    <h1>Same moment.<br><em>Different why.</em></h1>
+    <p class="muted" style="margin:0">Each card is an ordinary moment. Put it on the why that’s true for you, then guess your partner’s. You score only for reading each other. There’s no wrong answer about yourself.</p>
+    <div class="field"><label for="p1">First player</label><input id="p1" type="text" maxlength="16" placeholder="Name" value="${esc(S.names[0])}" autocomplete="off"></div>
+    <div class="field"><label for="p2">Second player</label><input id="p2" type="text" maxlength="16" placeholder="Name" value="${esc(S.names[1])}" autocomplete="off"></div>
+    <div class="panel"><div class="eyebrow" style="margin-bottom:8px">The seven whys</div>
+      <div class="whylist">${WHYS.map((w) => `<div style="--c:${w.c}"><b>${w.full}</b><span class="muted">${w.text}</span></div>`).join('')}</div></div>
+    <div class="spacer"></div>
+    <button class="btn" data-act="start">Deal ${PER_GAME} cards</button>
+    <p class="faint center" style="margin:0;font-size:12px">Pass and play on one phone.</p>`;
+}
+
+function turn() {
+  const p = who(), card = S.deck[S.i];
+  const guessing = S.step === 2;
+  const sel = S.sel;
+  const focus = sel != null ? WHYS[sel] : null;
+  return `
+    <div class="row"><span class="eyebrow">Card ${S.i + 1} of ${PER_GAME}</span>
+      <span class="muted" style="font-size:12px">${name(0)} ${score(0)} · ${name(1)} ${score(1)}</span></div>
+    <div class="center"><h2>${name(p)}, ${guessing ? `where did <em>${name(other(p))}</em> put it?` : 'why would this matter <em>to you?</em>'}</h2></div>
+    <div class="steps"><div class="step ${!guessing ? 'on' : ''}">1 · YOUR WHY</div><div class="step guess ${guessing ? 'on' : ''}">2 · ${name(other(p)).toUpperCase()}’S WHY?</div></div>
+    ${ring({ card, cls: (i) => [i === sel ? 'sel' : '', guessing && i === S.mine ? 'mine' : ''].join(' '),
+      tag: (i) => (guessing && i === S.mine ? '<span class="tag" style="color:var(--gold)">YOURS</span>' : '') })}
+    <div class="panel" style="min-height:58px">
+      ${focus ? `<div class="eyebrow" style="color:${focus.c}">${focus.full}</div><div style="font-family:var(--serif);font-size:16px;margin-top:3px">${focus.text}</div>`
+        : `<div class="faint">${guessing ? `You score a point if you match ${name(other(p))}.` : 'Tap the why that’s true for you right now.'}</div>`}
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" data-act="lock" ${sel == null ? 'disabled' : ''}>${guessing ? 'Lock my guess' : 'That’s my why'}</button>`;
+}
+
+function pass() {
+  const p = who();
+  return `<div class="handoff">
+    <svg class="mask" viewBox="0 0 120 100" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="22" y="12" width="52" height="76" rx="7" transform="rotate(-9 48 50)" opacity=".45"/><rect x="46" y="10" width="52" height="76" rx="7" transform="rotate(7 72 48)" fill="var(--ground)"/><rect x="52" y="16" width="40" height="64" rx="4" transform="rotate(7 72 48)" opacity=".5"/><path d="M72 38l5 10-5 10-5-10z" transform="rotate(7 72 48)"/></svg>
+    <div class="eyebrow">No peeking</div>
+    <h1>Pass the phone<br>to <em>${name(p)}</em>.</h1>
+    <p class="muted" style="margin:0">${S.turn === 1 ? `${name(other(p))} has locked in.` : `Card ${S.i + 1} of ${PER_GAME}. ${name(p)} goes first.`}</p>
+  </div>
+  <button class="btn" data-act="ready">I’m ${name(p)}. Show me the card</button>`;
+}
+
+function flip() {
+  const k = S.picks[S.i], card = S.deck[S.i];
+  const [a, b] = k.own;
+  const tagFor = (i) => {
+    const parts = [];
+    if (i === a) parts.push(name(0).toUpperCase());
+    if (i === b) parts.push(name(1).toUpperCase());
+    return parts.length ? `<span class="tag" style="color:${i === a && i === b ? 'var(--gold)' : 'var(--ink)'}">${parts.join(' · ')}</span>` : '';
+  };
+  const line = (p) => {
+    const ok = k.guess[p] === k.own[other(p)];
+    return `<div class="panel result"><span>${name(p)} guessed ${WHYS[k.guess[p]].full}${ok ? '' : `. It was ${WHYS[k.own[other(p)]].full}`}</span>
+      <span class="${ok ? 'ok' : 'miss'}">${ok ? `✓ +1` : '✗'}</span></div>`;
+  };
+  const same = a === b;
+  const ask = same
+    ? `You both chose ${WHYS[a].full}. Is it the same reason underneath?`
+    : `${name(0)}, ask ${name(1)}: what makes ${esc(card.toLowerCase())} ${WHYS[b].phrase} for you?`;
+  return `
+    <div class="row"><span class="eyebrow">Card ${S.i + 1} · the flip</span>
+      <span class="muted" style="font-size:12px">${name(0)} ${score(0)} · ${name(1)} ${score(1)}</span></div>
+    <div class="center"><h2>${same ? 'Same moment.<br><em>Same why.</em>' : 'Same moment.<br><em>Different why.</em>'}</h2></div>
+    ${ring({ card, static: true, flip: true, cls: (i) => (i === a || i === b ? 'sel' : 'dimmed'), tag: tagFor })}
+    ${line(0)}${line(1)}
+    <div class="ask"><span class="eyebrow">Talk about it</span><p>${ask}</p></div>
+    <div class="spacer"></div>
+    <button class="btn" data-act="next">${S.i + 1 < PER_GAME ? 'Next card' : 'See how you did'}</button>`;
+}
+
+function mixOf(p) { const m = WHYS.map(() => 0); S.picks.forEach((k) => m[k.own[p]]++); return m; }
+
+function saveHistory() {
+  if (S.saved) return;
+  S.saved = true;
+  const h = store.get('twain.history', {});
+  [0, 1].forEach((p) => {
+    const key = (S.names[p] || '').trim().toLowerCase();
+    if (!key) return;
+    const rec = h[key] || { counts: WHYS.map(() => 0), cards: 0, games: 0 };
+    mixOf(p).forEach((n, i) => (rec.counts[i] += n));
+    rec.cards += S.picks.length; rec.games += 1;
+    h[key] = rec;
+  });
+  store.set('twain.history', h);
+}
+
+function mixBlock(p) {
+  const key = (S.names[p] || '').trim().toLowerCase();
+  const h = store.get('twain.history', {})[key];
+  const many = h && h.games > 1;
+  const counts = many ? h.counts : mixOf(p);
+  const total = counts.reduce((x, y) => x + y, 0) || 1;
+  const top = counts.indexOf(Math.max(...counts));
+  return `<div class="panel" style="display:flex;flex-direction:column;gap:9px">
+    <div class="row"><span class="eyebrow">${name(p)}’s whys</span><span class="faint" style="font-size:11px">${many ? `${h.cards} cards · ${h.games} games` : 'this game'}</span></div>
+    <div style="font-family:var(--serif);font-size:16px">Most often: <span style="color:${WHYS[top].c}">${WHYS[top].full}</span>. Every why counts the same.</div>
+    <div class="mix">${WHYS.map((w, i) => `<div class="bar" style="--c:${w.c}"><span>${w.full === 'Life direction' ? 'Direction' : w.full}</span><span><i style="width:${(counts[i] / total) * 100}%"></i></span><span>${counts[i]}</span></div>`).join('')}</div>
+  </div>`;
+}
+
+function end() {
+  saveHistory();
+  const s0 = score(0), s1 = score(1);
+  const head = s0 === s1 ? `You read each other<br><em>equally well.</em>` : `${name(s0 > s1 ? 0 : 1)} read ${name(s0 > s1 ? 1 : 0)}<br><em>better tonight.</em>`;
+  const sameN = S.picks.filter((k) => k.own[0] === k.own[1]).length;
+  const surprise = S.picks.map((k, i) => ({ k, i })).find(({ k }) => k.guess[0] !== k.own[1] && k.guess[1] !== k.own[0])
+    || S.picks.map((k, i) => ({ k, i })).find(({ k }) => k.guess[0] !== k.own[1] || k.guess[1] !== k.own[0]);
+  let sline = '';
+  if (surprise) {
+    const { k, i } = surprise, p = k.guess[0] !== k.own[1] ? 1 : 0;
+    sline = `<div class="panel" style="font-family:var(--serif);font-size:16px;line-height:1.4">Biggest surprise: <i>${esc(S.deck[i].toLowerCase())}</i>. ${name(p)} put it in ${WHYS[k.own[p]].full}. ${name(other(p))} guessed ${WHYS[k.guess[other(p)]].full}.</div>`;
+  }
+  const chip = (i) => `<span class="chip" style="--c:${WHYS[i].c}"><i></i>${WHYS[i].name}</span>`;
+  return `
+    <div class="center" style="display:flex;flex-direction:column;gap:6px"><span class="eyebrow">Game over · ${PER_GAME} cards</span><h1>${head}</h1></div>
+    <div class="scores">
+      <div class="score ${s0 > s1 ? 'win' : ''}"><div class="eyebrow muted" style="color:var(--dim)">${name(0)} read ${name(1)}</div><div class="n">${s0}</div><div class="faint" style="font-size:11px">of ${PER_GAME}</div></div>
+      <div class="score ${s1 > s0 ? 'win' : ''}"><div class="eyebrow" style="color:var(--dim)">${name(1)} read ${name(0)}</div><div class="n">${s1}</div><div class="faint" style="font-size:11px">of ${PER_GAME}</div></div>
+    </div>
+    <p class="muted center" style="margin:0">You shared a why on ${sameN} of ${PER_GAME} cards.</p>
+    ${sline}
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>THE CARDS</th><th>${name(0).toUpperCase()}</th><th>${name(1).toUpperCase()}</th></tr></thead>
+      <tbody>${S.picks.map((k, i) => `<tr><td class="card">${esc(S.deck[i])}${k.own[0] === k.own[1] ? '<span class="same">SAME</span>' : ''}</td><td>${chip(k.own[0])}</td><td>${chip(k.own[1])}</td></tr>`).join('')}</tbody>
+    </table></div>
+    ${mixBlock(0)}${mixBlock(1)}
+    <div class="ask"><span class="eyebrow">A question to take with you</span><p>Which moment from tonight would you protect if next week got crowded?</p></div>
+    <button class="btn" data-act="rematch">Rematch</button>
+    <button class="btn ghost" data-act="new">New players</button>`;
+}
+
+document.addEventListener('click', (e) => {
+  const w = e.target.closest('[data-why]');
+  if (w && S.screen === 'turn') { S.sel = Number(w.dataset.why); render(); return; }
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const act = b.dataset.act;
+  if (act === 'start') {
+    const n = [document.getElementById('p1').value.trim(), document.getElementById('p2').value.trim()];
+    store.set('twain.names', n);
+    S = fresh(n);
+  } else if (act === 'lock') {
+    const p = who();
+    if (!S.picks[S.i]) S.picks[S.i] = { own: [null, null], guess: [null, null] };
+    if (S.step === 1) { S.mine = S.sel; S.picks[S.i].own[p] = S.sel; S.step = 2; S.sel = null; }
+    else {
+      S.picks[S.i].guess[p] = S.sel; S.step = 1; S.sel = null; S.mine = null;
+      if (S.turn === 0) { S.turn = 1; S.screen = 'pass'; } else { S.screen = 'flip'; }
+    }
+  } else if (act === 'ready') { S.screen = 'turn'; }
+  else if (act === 'next') {
+    S.i += 1; S.turn = 0;
+    S.screen = S.i < PER_GAME ? 'pass' : 'end';
+  } else if (act === 'rematch') { S = fresh(S.names); S.screen = 'pass'; }
+  else if (act === 'new') { S = fresh(); }
+  render();
+  window.scrollTo(0, 0);
+});
+
+function start(data) {
+  S = data && data.S ? data.S : fresh();
+  render();
+}
+window.claude?.hot?.snapshot?.(() => ({ S }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
