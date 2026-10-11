@@ -10,6 +10,7 @@ import { EMPTY, drawBar, drawCaps, drawLines, drawSky, drawStar, record, starfie
 import { Button, Eyebrow, goHome, Reading, StillSky, WhyChip } from '../keep/ui';
 import { addHold, addToList } from '../lib/storage';
 import { C, F, R, S } from '../lib/theme';
+import { deckNow } from '../lib/prefs';
 
 export default function Drift() {
   const [round, setRound] = useState(0);
@@ -37,7 +38,7 @@ function Field({ onDone }) {
   const game = () => {
     if (G.current) return G.current;
     // Ten moments from across the whys, set out in two loose columns.
-    const picks = deal(2).slice(0, DRIFT.count);
+    const picks = deal(2, Math.random, deckNow()).slice(0, DRIFT.count);
     const fades = shuffle(fadeStarts());
     const rowH = (bottom - top) / 5;
     const stars = picks.map((m, i) => {

@@ -14,6 +14,7 @@ import { EMPTY, drawCaps, drawConstellation, drawLines, drawSky, drawStar, layou
 import { Button, Eyebrow, goHome, StillSky } from '../keep/ui';
 import { addRound, addSky, loadSlow, saveSlow } from '../lib/storage';
 import { C, F, S } from '../lib/theme';
+import { deckNow } from '../lib/prefs';
 
 const clock = (t) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
@@ -27,7 +28,7 @@ export default function Slow() {
   const begin = async (wantsReminders) => {
     const opts = quick ? { spanMs: 4 * 60e3, fallMs: 70e3 } : {};
     const notify = wantsReminders ? await allowReminders() : false;
-    const s = { ...slowSchedule(Date.now(), deal(SLOW.perWhy), opts), seenMissed: 0, recorded: false, notify };
+    const s = { ...slowSchedule(Date.now(), deal(SLOW.perWhy, Math.random, deckNow()), opts), seenMissed: 0, recorded: false, notify };
     saveSlow(s);
     scheduleReminders(s);
     setNow(Date.now());

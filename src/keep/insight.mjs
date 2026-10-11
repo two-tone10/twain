@@ -1,6 +1,6 @@
 // Pure rules and readings for Keep. No React, no storage, so it runs under `node --test`.
 // Lines come back as segments: plain strings, or { em } for the emphasized moment names.
-import { WHYS, WHY, POOL, BASKET } from './content.mjs';
+import { WHYS, WHY, BASKET, poolFor } from './content.mjs';
 
 export function shuffle(a, rng = Math.random) {
   const b = a.slice();
@@ -9,8 +9,9 @@ export function shuffle(a, rng = Math.random) {
 }
 
 // Same number from every why, so no round leans one way before you touch it.
-export function deal(perWhy, rng = Math.random) {
-  return shuffle(WHYS.flatMap((w) => shuffle(POOL[w.key], rng).slice(0, perWhy).map((t) => ({ t, k: w.key }))), rng);
+export function deal(perWhy, rng = Math.random, deck = 'everyday') {
+  const pool = poolFor(deck, perWhy);
+  return shuffle(WHYS.flatMap((w) => shuffle(pool[w.key], rng).slice(0, perWhy).map((t) => ({ t, k: w.key }))), rng);
 }
 
 export const lc = (t) => t[0].toLowerCase() + t.slice(1);

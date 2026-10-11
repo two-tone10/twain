@@ -42,11 +42,11 @@ export const addSky = (kept) => append('keep:skies', [kept.map(({ t, k }) => ({ 
 
 // Moments you chose to try. They wait a week, then quietly drop off.
 export const loadList = () => load('keep:list', []);
-export const addToList = (items) => append('keep:list', items.map(({ t, k }) => ({ id: Math.random().toString(36).slice(2, 9), t, k, at: Date.now(), done: false })), 30);
+export const addToList = (items) => append('keep:list', items.map(({ t, k }) => ({ id: Math.random().toString(36).slice(2, 9), t, k, at: Date.now(), done: false })), 300);
 export async function answerCheckIn(id, answer) {
   const all = await load('keep:list', []);
   const it = all.find((x) => x.id === id);
-  if (it) Object.assign(it, answer);
+  if (it) Object.assign(it, answer, answer.didIt ? { doneAt: Date.now() } : {});
   await save('keep:list', all);
   return all;
 }
@@ -54,7 +54,7 @@ export async function answerCheckIn(id, answer) {
 export async function toggleListItem(id) {
   const all = await load('keep:list', []);
   const it = all.find((x) => x.id === id);
-  if (it) it.done = !it.done;
+  if (it) { it.done = !it.done; it.doneAt = it.done ? Date.now() : null; }
   await save('keep:list', all);
   return { all, item: it };
 }

@@ -17,6 +17,7 @@
     "expo-router": "~57.0.25",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.25",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -33,7 +34,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "node --test src/keep/*.test.mjs",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "library": "node scripts/sync-library.mjs"
   },
   "private": true,
   "devDependencies": {

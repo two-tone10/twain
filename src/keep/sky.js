@@ -160,13 +160,18 @@ export function drawConstellation(c, items, pts, { font, alpha = 1, labels = tru
   }
   shown.forEach((pt, i) => { if (pt) drawStar(c, pt.x, pt.y, 3.4 * (1 + Math.sin(T * 0.003 + i) * 0.15), alpha, bright); });
   if (!labels || !font) return;
+  // Each label tries below its star, then above, then further below, and takes the first spot that's clear.
+  const placed = [];
+  const hits = (r) => placed.some((q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h)
+    || shown.some((o) => o && o.x > r.x - 4 && o.x < r.x + r.w + 4 && o.y > r.y - 4 && o.y < r.y + r.h + 4);
   shown.forEach((pt, i) => {
     if (!pt) return;
     const t = items[i].t, w = textWidth(font, t);
     const x = box ? Math.min(Math.max(pt.x, box.x + w / 2 + 2), box.x + box.w - w / 2 - 2) : pt.x;
-    // Below the star unless another star sits right there; then above.
-    const crowded = shown.some((o, j) => o && j !== i && Math.abs(o.x - x) < w / 2 + 6 && o.y > pt.y && o.y - pt.y < 34);
-    drawLines(c, [t], x, crowded ? pt.y - 22 : pt.y + 7, font, 13, alpha * 0.92);
+    const spots = [pt.y + 7, pt.y - 22, pt.y + 21, pt.y - 36];
+    const y = spots.find((sy) => !hits({ x: x - w / 2, y: sy, w, h: 13 })) ?? spots[0];
+    placed.push({ x: x - w / 2, y, w, h: 13 });
+    drawLines(c, [t], x, y, font, 13, alpha * 0.92);
   });
 }
 

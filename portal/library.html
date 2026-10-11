@@ -1,0 +1,276 @@
+<title>Keep Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* Layout: an entry bar pinned at the top (why + deck + text, Enter to add), a coverage grid, then the searchable library. The app's own night palette. */
+:root {
+  --sky0: #05060f; --sky1: #141938; --panel: rgba(20,25,56,0.7);
+  --ink: #efe6d6; --dim: #b9ae9c; --faint: #8a8074; --line: rgba(239,230,214,0.14);
+  --gold: #d8b46a; --warn: #e79a7a;
+  --serif: "Bodoni Moda", Didot, Georgia, serif;
+  --sans: "Jost", "Avenir Next", "Helvetica Neue", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: linear-gradient(180deg, var(--sky0), var(--sky1)) fixed; color: var(--ink); font: 15px/1.5 var(--sans); }
+.page { max-width: 880px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 80px; display: grid; gap: 28px; }
+h1 { font: 400 40px/1.05 var(--serif); margin: 0; }
+h1 i { color: var(--gold); font-style: normal; }
+.eyebrow { font: 500 10.5px var(--sans); letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); }
+.muted { color: var(--faint); font-size: 13px; }
+header { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+.status { text-align: right; display: grid; gap: 2px; }
+.status b { font: 500 22px var(--sans); font-variant-numeric: tabular-nums; }
+.status .new { color: var(--gold); }
+
+.entry { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(5,6,15,0.94); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 12px; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.row .lab { font: 500 10px var(--sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); width: 44px; }
+.chip { font: 500 13px var(--sans); padding: 5px 11px; border-radius: 99px; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; }
+.chip[aria-pressed="true"] { color: var(--sky0); border-color: transparent; }
+.chip kbd { font: 10px var(--sans); opacity: 0.6; }
+.add { display: flex; gap: 8px; }
+.add input { flex: 1; min-width: 0; font: 400 20px var(--serif); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; }
+.add input:focus, .search:focus { outline: 1px solid var(--gold); border-color: var(--gold); }
+.add button, .btn { font: 600 14px var(--sans); color: var(--sky0); background: var(--gold); border: 0; border-radius: 99px; padding: 0 20px; cursor: pointer; }
+.btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); padding: 8px 14px; }
+.hint { font-size: 12.5px; color: var(--faint); min-height: 18px; }
+.hint.warn { color: var(--warn); }
+.hint.ok { color: var(--gold); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.grid-wrap { overflow-x: auto; }
+table.cov { border-collapse: collapse; width: 100%; min-width: 560px; font-variant-numeric: tabular-nums; }
+.cov th, .cov td { padding: 7px 6px; text-align: center; border-bottom: 1px solid var(--line); font-size: 13px; }
+.cov th { font: 500 10px var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.cov th:first-child, .cov td:first-child { text-align: left; }
+.cov td:first-child { font-family: var(--serif); font-size: 15px; }
+.cov td.low { color: var(--warn); }
+.cov td button { all: unset; cursor: pointer; padding: 2px 8px; border-radius: 6px; }
+.cov td button:hover { background: var(--panel); }
+
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.search { flex: 1; min-width: 180px; font: 15px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 8px 14px; }
+select { font: 14px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 7px 10px; }
+.list { display: grid; }
+.item { display: grid; grid-template-columns: 10px minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.item .dot { width: 9px; height: 9px; border-radius: 50%; }
+.item .t { font: 400 17px var(--serif); min-width: 0; overflow-wrap: anywhere; }
+.item .t[contenteditable="true"] { outline: 1px solid var(--gold); border-radius: 4px; padding: 0 4px; }
+.item.off .t { color: var(--faint); text-decoration: line-through; }
+.item .meta { font-size: 12px; color: var(--faint); white-space: nowrap; }
+.item .meta .newtag { color: var(--gold); }
+.item .acts { display: flex; gap: 2px; }
+.item .acts button { all: unset; cursor: pointer; font-size: 12px; color: var(--faint); padding: 4px 7px; border-radius: 6px; }
+.item .acts button:hover { color: var(--ink); background: var(--panel); }
+.empty { padding: 28px 0; color: var(--faint); }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; background: var(--sky1); border: 1px solid var(--line); padding: 9px 16px; border-radius: 99px; font-size: 14px; }
+@media (max-width: 560px) {
+  .item { grid-template-columns: 10px minmax(0,1fr) auto; }
+  .item .meta { grid-column: 2; }
+  .row .lab { width: 100%; }
+}
+</style>
+
+<main class="page">
+  <header>
+    <div>
+      <div class="eyebrow">Private · only you can add</div>
+      <h1>Keep library<i>.</i></h1>
+      <div class="muted">Short moments, the kind that fit on a falling star. They reach the app with the next update.</div>
+    </div>
+    <div class="status">
+      <b id="total">–</b>
+      <span class="muted" id="since"></span>
+    </div>
+  </header>
+
+  <section class="entry" aria-label="Add moments">
+    <div class="row" id="whys"><span class="lab">Why</span></div>
+    <div class="row" id="decks"><span class="lab">Deck</span></div>
+    <form class="add" id="add">
+      <input id="text" autocomplete="off" placeholder="A slow coffee" maxlength="60" aria-label="Moment">
+      <button type="submit">Add</button>
+    </form>
+    <div class="hint" id="hint">Enter adds and keeps the why and deck. Keys 1–7 pick a why while the box is empty.</div>
+  </section>
+
+  <section style="display:grid; gap:10px">
+    <div class="eyebrow">Coverage</div>
+    <div class="grid-wrap"><table class="cov" id="cov"></table></div>
+    <div class="muted">Each deck needs at least 4 per why for a duel. Short cells borrow from Everyday until you fill them.</div>
+  </section>
+
+  <section style="display:grid; gap:12px">
+    <div class="tools">
+      <input class="search" id="q" placeholder="Search" aria-label="Search the library">
+      <select id="fdeck" aria-label="Deck filter"></select>
+      <select id="fwhy" aria-label="Why filter"></select>
+      <button class="btn ghost" id="export">Copy JSON</button>
+    </div>
+    <div class="list" id="list"><div class="empty">Loading the library…</div></div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const WHYS = [
+  ['delight', 'Delight', '#ef8f9f', 'Feels good'], ['setting', 'Setting', '#d9b26a', 'The place'], ['novelty', 'Novelty', '#6fd0d8', 'New to you'],
+  ['company', 'Company', '#f3b98a', 'Who’s there'], ['skill', 'Skill', '#a7c48a', 'Getting better'], ['taste', 'Taste', '#b79be0', 'Really good'],
+  ['direction', 'Direction', '#7fb2f0', 'Where life’s heading'],
+];
+const DECKS = [['everyday', 'Everyday'], ['campus', 'Campus'], ['city', 'New city'], ['kids', 'With kids'], ['later', 'Next chapter']];
+const COL = Object.fromEntries(WHYS.map((w) => [w[0], w[2]]));
+const WN = Object.fromEntries(WHYS.map((w) => [w[0], w[1]]));
+const DN = Object.fromEntries(DECKS);
+const $ = (id) => document.getElementById(id);
+
+let pick = { k: 'delight', d: 'everyday' };
+try { Object.assign(pick, JSON.parse(localStorage.getItem('keep-lib-pick') || '{}')); } catch (e) {}
+const byDeck = {}; // deck -> Map(id -> doc)
+let shippedAt = 0, db = null, canWrite = true, editing = null;
+
+function all() { return DECKS.flatMap(([d]) => [...(byDeck[d] || new Map()).values()]); }
+function norm(t) { return t.replace(/\s+/g, ' ').replace(/'/g, '’').trim(); }
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => (t.hidden = true), 2200); }
+
+/* entry chips */
+function chips() {
+  const w = $('whys'), d = $('decks');
+  w.querySelectorAll('.chip').forEach((c) => c.remove()); d.querySelectorAll('.chip').forEach((c) => c.remove());
+  WHYS.forEach(([k, n, col, gloss], i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.title = gloss;
+    const on = pick.k === k; b.setAttribute('aria-pressed', on); if (on) b.style.background = col;
+    b.innerHTML = `<i style="background:${col}"></i>${n} <kbd>${i + 1}</kbd>`;
+    b.onclick = () => { pick.k = k; save(); chips(); $('text').focus(); };
+    w.appendChild(b);
+  });
+  DECKS.forEach(([k, n]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip';
+    const on = pick.d === k; b.setAttribute('aria-pressed', on); if (on) b.style.background = '#efe6d6';
+    b.textContent = n; b.onclick = () => { pick.d = k; save(); chips(); $('text').focus(); };
+    d.appendChild(b);
+  });
+}
+function save() { try { localStorage.setItem('keep-lib-pick', JSON.stringify(pick)); } catch (e) {} }
+
+function hint() {
+  const t = norm($('text').value), h = $('hint');
+  h.className = 'hint';
+  if (!t) { h.textContent = 'Enter adds and keeps the why and deck. Keys 1–7 pick a why while the box is empty.'; return; }
+  const dup = all().find((m) => m.d === pick.d && m.t.toLowerCase() === t.toLowerCase());
+  if (dup) { h.className = 'hint warn'; h.textContent = `Already in ${DN[pick.d]} as ${WN[dup.k]}.`; return; }
+  if (t.length > 30) { h.className = 'hint warn'; h.textContent = `${t.length} characters. Over about 30 it wraps to three lines on a star.`; return; }
+  h.textContent = `${t.length} characters · ${WN[pick.k]} · ${DN[pick.d]}`;
+}
+
+$('text').addEventListener('input', hint);
+$('text').addEventListener('keydown', (e) => {
+  if (!$('text').value && /^[1-7]$/.test(e.key)) { e.preventDefault(); pick.k = WHYS[+e.key - 1][0]; save(); chips(); hint(); }
+});
+$('add').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const t = norm($('text').value);
+  if (!t) return;
+  if (all().some((m) => m.d === pick.d && m.t.toLowerCase() === t.toLowerCase())) { hint(); return; }
+  if (!db || !canWrite) { toast('Can’t save from this view.'); return; }
+  try {
+    await db.collection('moments').add({ t, k: pick.k, d: pick.d, at: Date.now() });
+    $('text').value = ''; hint();
+    const h = $('hint'); h.className = 'hint ok'; h.textContent = `Added “${t}”.`;
+  } catch (err) { toast(err.code === 'quota_exceeded' ? 'The library is full. Remove a few hidden ones first.' : 'Didn’t save. Try again.'); }
+});
+
+/* coverage */
+function coverage() {
+  const c = {};
+  for (const m of all()) if (!m.off) c[m.d + m.k] = (c[m.d + m.k] || 0) + 1;
+  let h = '<tr><th>Deck</th>' + WHYS.map(([k, n, col]) => `<th><span style="color:${col}">${n}</span></th>`).join('') + '<th>All</th></tr>';
+  for (const [d, dn] of DECKS) {
+    let tot = 0;
+    h += `<tr><td>${dn}</td>` + WHYS.map(([k]) => { const n = c[d + k] || 0; tot += n; return `<td class="${n < 4 ? 'low' : ''}"><button data-d="${d}" data-k="${k}" aria-label="Add to ${dn}, ${WN[k]}">${n}</button></td>`; }).join('') + `<td>${tot}</td></tr>`;
+  }
+  $('cov').innerHTML = h;
+  $('cov').querySelectorAll('button').forEach((b) => (b.onclick = () => { pick = { k: b.dataset.k, d: b.dataset.d }; save(); chips(); hint(); $('text').focus(); }));
+}
+
+/* list */
+function filters() {
+  $('fdeck').innerHTML = '<option value="">All decks</option>' + DECKS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+  $('fwhy').innerHTML = '<option value="">All whys</option>' + WHYS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+}
+function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function render() {
+  const ms = all();
+  const live = ms.filter((m) => !m.off);
+  const fresh = live.filter((m) => (m.at || 0) > shippedAt);
+  $('total').textContent = `${live.length} moments`;
+  $('since').innerHTML = shippedAt ? (fresh.length ? `<span class="new">${fresh.length} new</span> since the last update` : 'All in the app') : '';
+  coverage();
+  if (editing) return;
+  const q = $('q').value.trim().toLowerCase(), fd = $('fdeck').value, fw = $('fwhy').value;
+  const rows = ms
+    .filter((m) => (!fd || m.d === fd) && (!fw || m.k === fw) && (!q || m.t.toLowerCase().includes(q)))
+    .sort((a, b) => (b.at || 0) - (a.at || 0) || a.t.localeCompare(b.t));
+  if (!ms.length) { $('list').innerHTML = '<div class="empty">The library is empty. Add the first moment above.</div>'; return; }
+  if (!rows.length) { $('list').innerHTML = '<div class="empty">Nothing matches.</div>'; return; }
+  $('list').innerHTML = rows.slice(0, 400).map((m) => `
+    <div class="item${m.off ? ' off' : ''}" data-id="${m.id}" data-d="${m.d}">
+      <span class="dot" style="background:${COL[m.k]}" title="${WN[m.k]}"></span>
+      <span class="t">${esc(m.t)}</span>
+      <span class="meta">${WN[m.k]} · ${DN[m.d]}${(m.at || 0) > shippedAt ? ' · <span class="newtag">new</span>' : ''}</span>
+      <span class="acts">${canWrite ? `<button data-a="edit">Edit</button><button data-a="why">Why</button><button data-a="off">${m.off ? 'Show' : 'Hide'}</button><button data-a="del">Delete</button>` : ''}</span>
+    </div>`).join('') + (rows.length > 400 ? `<div class="empty">${rows.length - 400} more. Search or filter to narrow it.</div>` : '');
+}
+
+$('list').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-a]'); if (!b || !db) return;
+  const row = b.closest('.item'), id = row.dataset.id, m = byDeck[row.dataset.d].get(id), ref = db.doc('moments/' + id);
+  try {
+    if (b.dataset.a === 'off') await ref.update({ off: !m.off });
+    if (b.dataset.a === 'why') { const i = WHYS.findIndex((w) => w[0] === m.k); await ref.update({ k: WHYS[(i + 1) % 7][0] }); }
+    if (b.dataset.a === 'del') {
+      if (b.dataset.sure) { await ref.delete(); toast('Deleted.'); }
+      else { b.dataset.sure = '1'; b.textContent = 'Sure?'; b.style.color = 'var(--warn)'; setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Delete'; b.style.color = ''; } }, 2500); }
+    }
+    if (b.dataset.a === 'edit') {
+      const t = row.querySelector('.t'); editing = id; t.contentEditable = 'true'; t.focus();
+      document.getSelection().selectAllChildren(t);
+      const done = async (keep) => {
+        t.contentEditable = 'false'; editing = null;
+        const v = norm(t.textContent);
+        if (keep && v && v !== m.t) await ref.update({ t: v }); else t.textContent = m.t;
+        render();
+      };
+      t.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); done(true); } if (ev.key === 'Escape') done(false); };
+      t.onblur = () => editing === id && done(true);
+    }
+  } catch (err) { toast('Didn’t save. Try again.'); }
+});
+['q', 'fdeck', 'fwhy'].forEach((id) => $(id).addEventListener('input', render));
+
+$('export').onclick = () => {
+  const txt = JSON.stringify(all().filter((m) => !m.off).map(({ t, k, d }) => ({ t, k, d })), null, 1);
+  navigator.clipboard.writeText(txt).then(() => toast(`Copied ${all().filter((m) => !m.off).length} moments as JSON.`)).catch(() => toast('Copy was blocked here.'));
+};
+
+chips(); filters(); hint();
+
+(async () => {
+  db = await claude.use('db');
+  if (!db) { $('list').innerHTML = '<div class="empty">Sign in to claude.ai to open the library.</div>'; $('add').querySelector('button').disabled = true; return; }
+  const user = await claude.use('user');
+  canWrite = (await user?.isOwner?.()) ?? true;
+  if (!canWrite) { $('add').hidden = true; $('hint').textContent = 'Read-only. Only the owner adds moments.'; }
+  db.doc('meta/shipped').onSnapshot((s) => { shippedAt = s.exists ? s.data().at || 0 : 0; render(); }, () => {});
+  DECKS.forEach(([d]) => {
+    db.collection('moments').where('d', '==', d).limit(1000).onSnapshot((snap) => {
+      byDeck[d] = new Map(snap.docs.map((doc) => [doc.id, { id: doc.id, ...doc.data() }]));
+      render();
+    }, (err) => toast(err.code === 'revoked' ? 'Access changed. Reload the page.' : 'Lost the connection to the library.'));
+  });
+  $('text').focus();
+})();
+</script>

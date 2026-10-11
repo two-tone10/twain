@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import { useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BASKET, DUEL_PER_WHY, ROUND_MS } from '../keep/content.mjs';
+import { BASKET, DUEL_PER_WHY, ROUND_MS, WHYS } from '../keep/content.mjs';
+import { guessLine } from '../keep/readings.mjs';
 import { deal, duelSummary } from '../keep/insight.mjs';
 import {
   EMPTY, drawBar, drawCaps, drawConstellation, drawLines, drawSky, drawStar, drawTrail,
@@ -13,6 +14,7 @@ import {
 import { Button, Eyebrow, goHome, Reading, StillSky, WhyChip } from '../keep/ui';
 import { loadNames, saveNames } from '../lib/storage';
 import { C, F, R, S } from '../lib/theme';
+import { deckNow } from '../lib/prefs';
 
 export default function Duel() {
   const [phase, setPhase] = useState('setup');
@@ -84,7 +86,7 @@ function Arena({ names, onDone }) {
   const flip = (p) => ({ x: W - p.x, y: H - p.y });
 
   const G = useRef(null);
-  const game = () => (G.current ??= { deck: deal(DUEL_PER_WHY), live: [], baskets: [[], []], ghosts: [], flies: [], pops: [], fights: [], gone: [], gt: 0, next: 400, lane: 0, over: false, field: starfield(W, H, 120) });
+  const game = () => (G.current ??= { deck: deal(DUEL_PER_WHY, Math.random, deckNow()), live: [], baskets: [[], []], ghosts: [], flies: [], pops: [], fights: [], gone: [], gt: 0, next: 400, lane: 0, over: false, field: starfield(W, H, 120) });
 
   const target = (who, i) => {
     const p = layout(game().baskets[who], geo.sky)[i];
@@ -213,10 +215,48 @@ function Arena({ names, onDone }) {
 
 /* ---------------- results ---------------- */
 
+// Before the reveal, each player guesses the other's strongest why. Hand the phone across between turns.
+function Guess({ guesser, other, onPick }) {
+  return (
+    <View style={styles.root}>
+      <StillSky />
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.setup}>
+          <Eyebrow>Read each other · {guesser}</Eyebrow>
+          <Text style={styles.h2}>Before you see {other}’s sky: what did {other} reach for most?</Text>
+          <Text style={styles.sub}>No peeking at their side.</Text>
+          <View style={{ gap: 4 }}>
+            {WHYS.map((w) => (
+              <Pressable key={w.key} accessibilityRole="button" onPress={() => { Haptics.selectionAsync(); onPick(w.key); }} style={({ pressed }) => [styles.guess, pressed && { borderColor: w.color }]}>
+                <View style={[styles.dot, { backgroundColor: w.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guessName}>{w.name}</Text>
+                  <Text style={styles.label}>{w.about}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
 function DuelResults({ r, onAgain }) {
+  const both = r.baskets[0].length > 0 && r.baskets[1].length > 0;
+  const [guesses, setGuesses] = useState([]);
+  if (both && guesses.length < 2) {
+    const g = guesses.length;
+    return <Guess key={g} guesser={r.names[g]} other={r.names[1 - g]} onPick={(k) => setGuesses((x) => [...x, k])} />;
+  }
+  return <Reveal r={r} onAgain={onAgain} guesses={both ? guesses : null} />;
+}
+
+function Reveal({ r, onAgain, guesses }) {
   const { width: W } = useWindowDimensions();
   const fonts = useSkyFonts();
   const { head, lines } = duelSummary(r.names, r.baskets, r.fights);
+  const reads = guesses && [0, 1].map((p) => guessLine(r.names[p], r.names[1 - p], guesses[p], r.baskets[1 - p]));
   const colW = (W - 2 * S.lg - S.md) / 2;
   const minis = useMemo(() => {
     if (!fonts) return null;
@@ -234,6 +274,12 @@ function DuelResults({ r, onAgain }) {
           <View style={{ gap: 10 }}>
             {lines.map((l, i) => <Reading key={i} line={l} />)}
           </View>
+          {reads && (
+            <View style={styles.reads}>
+              <Eyebrow>Read each other · {reads.filter((x) => x.right).length} of 2</Eyebrow>
+              {reads.map((x, i) => <Reading key={i} line={x.line} />)}
+            </View>
+          )}
           <View style={{ flexDirection: 'row', gap: S.md }}>
             {[0, 1].map((p) => (
               <View key={p} style={{ width: colW }}>
@@ -272,4 +318,8 @@ const styles = StyleSheet.create({
   results: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   row: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.line, gap: 3 },
   rowText: { fontFamily: F.serif, fontSize: 14, color: C.ink },
+  reads: { gap: 8, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  guess: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: R.lg, borderWidth: 1, borderColor: C.line },
+  guessName: { fontFamily: F.serif, fontSize: 17, color: C.ink },
+  dot: { width: 10, height: 10, borderRadius: 5 },
 });
