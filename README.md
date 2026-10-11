@@ -1,37 +1,62 @@
-# Twain
+# Keep
 
-Two players, one Saturday. Each player secretly picks a side: **The Savorer** (delight) or **The Steward** (growth). Both can pick the same one. Each sees only their own side's tags and goals: two for their side plus a secret **Mask**, one tile from the other side they need on the day.
+Moments fall like stars. Tap the ones you'd keep. Your sky holds five.
 
-## How a game goes
+Keep is a one-thumb game that shows you what you reach for. Every moment carries one of seven whys, but the whys stay hidden while you play. You only see them afterward, in the constellation your keeps draw and in a few short readings about what you grabbed, what you held on to, and what you actually did.
 
-1. **Pick:** both players choose a side in secret.
-2. **Five rounds**, one per part of the day, each a different task:
-   - **Offer** (Morning): one offers two tiles, the other takes one.
-   - **Veto** (Midday): one shows three, the other strikes one, the first places one of the two left.
-   - **The Turn** (Afternoon): each player secretly keeps their side or switches. Switching deals two new goals and a new Mask. Then an offer/take.
-   - **Blind** (Evening): both pick a tile at once. Match and it lands; miss and a coin flip decides.
-   - **Last call** (Night): one cuts a tile for good, the other fills Night.
-3. **The read** (3 points): which side your partner ended on, whether they switched, and which tile was their Mask (or that it never came up).
-4. **Reveal:** the day is scored and both reads are shown.
+The repo is still named `twain` (the earlier card game lives in git history on `c7fcb65` and before). The app is **Keep**: bundle id `com.lipurposefe.keep`, App Store name "Keep: Catch a Falling Star", "Keep" under the icon.
 
-## Scoring
+## Modes
 
-- A day's score is the **lower** player's goal count, so no one can carry it alone. Good day: 2 of 3 goals each. Full day: 3 of 3 each.
-- Reads: up to 3 per player.
-- Good days are saved to a local album. There are no streaks, no leaderboard, and no per-persona stats.
+- **Drop** (45 seconds): moments fall and speed up. Keep five. Once full, tap a falling star to swap one out (time slows while you choose). Ends with a **final cut**: your fastest and slowest grab, six seconds to keep one.
+- **Drift**: ten stars, already yours, start fading one by one. Touch and hold to keep a star lit (multi-touch, so two thumbs can protect two). Reads what you protect, not what you grab.
+- **Slow drop**: one drop across a whole day. Fourteen moments over twelve hours, each taking about three hours to fall. Opt-in local reminders, never more than one every two hours. `/slow?quick=1` squeezes the day into about five minutes for testing.
+- **Duel**: two thumbs, one phone laid flat. Stars streak across the middle with labels printed both ways up. A late second tap on a just-taken star counts as a fight.
+
+After a solo round you can pick moments to **try today**. They wait on the home screen for a week; the next day Keep asks "Did you get to it?" and, if yes, "Glad you did?".
+
+**Your sky** layers every constellation like a star chart and reads three things: what you grab fastest (Drop), what you hold (Drift), what you actually do (the list), plus where they differ.
+
+## The seven whys
+
+Delight, Setting, Novelty, Company, Skill, Taste, Direction (shown in full as "Life direction" where there's room). Each owns a vertical strip of the sky, which is why your keeps draw a shape that's yours.
+
+Rules that matter:
+
+- No why ranks above another. Never present them as a ladder from pleasure to purpose.
+- Points never depend on *which* moments you keep. You can win on speed, on reading a friend, or on beating them to a moment, never by keeping "better" things.
+- No streaks, no counts of misses, nothing to feel bad about. "Not this time" is a full answer.
+- Use "life direction", never "meaning", for the Direction why.
+- Avoid the shared ARC vocabulary from the purpose-platform apps (no "lens", no ∂) so App Store review doesn't read Keep as a copy of them (Guideline 4.3).
 
 ## Run
 
 ```bash
 npm install
-npx expo start --web    # or scan with Expo Go
-npm test                # engine tests
+npx expo start --ios     # Expo Go on the simulator; notifications need a real build
+npm test                 # node --test on the pure rules
+npx expo lint
+npx expo-doctor
 ```
 
-Rooms use Supabase Realtime broadcast and presence only. Nothing is written to the database: the host's device holds the game state, and the album stays on the device. Picks, switches and Masks are hidden by the UI, not encrypted: the guest's client receives the full state.
+Builds: `eas build -p ios --profile production --auto-submit` (credentials are set up on EAS; TestFlight internal group is "Team (Expo)").
 
 ## Layout
 
-- `src/game/`: pure engine (`engine.mjs`) and content (`content.mjs`), tested with `node --test`
-- `src/lib/room.js`: host-authoritative room sync
-- `src/app/`: Expo Router screens (home, room, pass-and-play, album)
+- `src/keep/content.mjs`: the seven whys, the moment pool, round constants
+- `src/keep/insight.mjs`: dealing, headlines, solo and duel readings, sky positions (pure, tested)
+- `src/keep/modes.mjs`: Drift, slow drop, reminders, list check-ins, Your sky readings (pure, tested)
+- `src/keep/sky.js`: Skia drawing (sky, stars, trails, constellations) and the frame loop
+- `src/keep/outcome.js`: final cut and results, shared by Drop and the slow drop
+- `src/keep/notify.js`: opt-in local reminders (expo-notifications)
+- `src/keep/ui.js`: buttons, readings, why chips, the still sky behind screens
+- `src/app/`: Expo Router screens: `index` (home), `play` (Drop), `drift`, `slow`, `duel`, `sky`
+- `src/lib/storage.js`: everything is local (AsyncStorage): rounds, holds, skies, the list, the slow drop
+- `prototype/`: the HTML prototypes the app was designed from (`keep.html`, `keep-looks.html`, and earlier explorations)
+
+Stack: Expo SDK 57, React Native 0.86, Expo Router, `@shopify/react-native-skia` for the falling field, Reanimated for small UI animations, Bodoni Moda and Jost via `@expo-google-fonts`.
+
+## Open ideas
+
+- A quiet bottom bar (Play · Sky · List) so the list and Your sky are easier to find.
+- Twists per round (pairs, wind, fog, rush), a daily drop shared by everyone, playing a friend's ghost, themed decks.

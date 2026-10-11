@@ -41,7 +41,8 @@
           "imageWidth": 180,
           "backgroundColor": "#05060f"
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "scheme": "twain",
     "backgroundColor": "#05060f",
