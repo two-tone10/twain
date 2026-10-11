@@ -3,12 +3,12 @@ import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-n
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
-import { tally } from '../keep/insight.mjs';
-import { skyReadings } from '../keep/modes.mjs';
-import { drawConstellation, layout, record, useSkyFonts } from '../keep/sky';
-import { Button, Eyebrow, goHome, Reading, StillSky, WhyChip } from '../keep/ui';
-import { loadHolds, loadList, loadRounds, loadSkies } from '../lib/storage';
-import { C, F, R, S } from '../lib/theme';
+import { tally } from '../../keep/insight.mjs';
+import { skyReadings } from '../../keep/modes.mjs';
+import { drawConstellation, layout, record, useSkyFonts } from '../../keep/sky';
+import { Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
+import { loadHolds, loadList, loadRounds, loadSkies } from '../../lib/storage';
+import { C, F, R, S } from '../../lib/theme';
 
 export default function Sky() {
   const { width: W } = useWindowDimensions();
@@ -47,7 +47,7 @@ export default function Sky() {
   return (
     <View style={styles.root}>
       <StillSky />
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.wrap}>
           <Eyebrow>Your sky · {data.skies.length} constellation{data.skies.length === 1 ? '' : 's'}</Eyebrow>
           {chart ? (
@@ -94,7 +94,6 @@ export default function Sky() {
             </View>
           )}
 
-          <Button ghost label="Back" onPress={() => goHome()} style={{ marginTop: S.md }} />
         </ScrollView>
       </SafeAreaView>
     </View>
