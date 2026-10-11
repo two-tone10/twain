@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -8,6 +8,8 @@ import { activeList, dayKey } from '../../keep/insight.mjs';
 import { dueCheckIns } from '../../keep/modes.mjs';
 import { Button, Eyebrow, StillSky, WhyChip } from '../../keep/ui';
 import { answerCheckIn, loadList, toggleListItem } from '../../lib/storage';
+import { loadEvening, saveEvening } from '../../lib/prefs';
+import { allowReminders, scheduleEvening } from '../../keep/notify';
 import { C, F, R, S } from '../../lib/theme';
 
 const shortDay = (t, today) => (dayKey(t) === today ? 'Today' : new Date(t).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
@@ -17,26 +19,37 @@ export default function List() {
   const [now, setNow] = useState(0);
   const [glad, setGlad] = useState(null);
   const [note, setNote] = useState('');
+  const [evening, setEvening] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60e3);
     return () => clearInterval(id);
   }, []);
-  useFocusEffect(useCallback(() => { setNow(Date.now()); loadList().then(setList); }, []));
+  useFocusEffect(useCallback(() => { setNow(Date.now()); loadList().then(setList); loadEvening().then(setEvening); }, []));
+
+  // Any change to the list re-picks tonight's star.
+  const update = (all) => { setList(all); scheduleEvening(all, evening); };
+  const toggleEvening = async (on) => {
+    if (on && !(await allowReminders())) { flash('Notifications are off for Keep in Settings.'); return; }
+    setEvening(on);
+    await saveEvening(on);
+    scheduleEvening(list, on);
+    if (on) flash('Tonight at 6, one moment from your list.');
+  };
 
   const flash = (msg) => { setNote(msg); setTimeout(() => setNote(''), 2200); };
   const toggle = async (id) => {
     const { all, item } = await toggleListItem(id);
-    setList(all);
+    update(all);
     if (item?.done) { Haptics.selectionAsync(); flash(`Done. A ${WHY[item.k].name.toLowerCase()} moment.`); }
   };
   const answer = async (it, didIt) => {
-    setList(await answerCheckIn(it.id, { didIt }));
+    update(await answerCheckIn(it.id, { didIt }));
     if (didIt) setGlad(it);
     else flash('That’s fine. It’ll keep.');
   };
   const answerGlad = async (yes) => {
-    setList(await answerCheckIn(glad.id, { glad: yes }));
+    update(await answerCheckIn(glad.id, { glad: yes }));
     setGlad(null);
     flash(yes ? 'Good. Noted in your sky.' : 'Noted. Worth knowing too.');
   };
@@ -127,6 +140,13 @@ export default function List() {
               ))}
             </View>
           )}
+          <View style={[styles.section, styles.evening]}>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={styles.todoText}>Tonight’s star</Text>
+              <Text style={styles.hint}>A quiet note at 6pm with one moment from your list. Only on days the list has something.</Text>
+            </View>
+            <Switch value={evening} onValueChange={toggleEvening} trackColor={{ true: C.gold, false: C.line }} thumbColor={C.ink} accessibilityLabel="Tonight’s star" />
+          </View>
         </ScrollView>
       </SafeAreaView>
       {note ? <Text style={styles.toast}>{note}</Text> : null}
@@ -144,6 +164,7 @@ const styles = StyleSheet.create({
   answers: { flexDirection: 'row', gap: S.sm },
   empty: { fontFamily: F.sans, fontSize: 15, lineHeight: 22, color: C.faint },
   section: { gap: 2, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
+  evening: { flexDirection: 'row', alignItems: 'center', gap: S.md },
   hint: { fontFamily: F.sans, fontSize: 13, color: C.faint, marginBottom: 4, marginTop: 4 },
   todo: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   doneRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },

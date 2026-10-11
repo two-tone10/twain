@@ -34,7 +34,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "node --test src/keep/*.test.mjs",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "library": "node scripts/sync-library.mjs"
   },
   "private": true,
   "devDependencies": {

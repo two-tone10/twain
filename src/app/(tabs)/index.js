@@ -4,15 +4,20 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, StillSky } from '../../keep/ui';
 import { drawGhosts, drawConstellation, layout } from '../../keep/sky';
-import { BASKET } from '../../keep/content.mjs';
+import { BASKET, DECK } from '../../keep/content.mjs';
 import { fmtLeft, slowSnapshot } from '../../keep/modes.mjs';
 import { loadSkies, loadSlow } from '../../lib/storage';
+import { deckNow, loadOnboarded } from '../../lib/prefs';
 import { C, F, S } from '../../lib/theme';
 
 export default function Play() {
   const [skies, setSkies] = useState([]);
   const [slow, setSlow] = useState(null);
   const [now, setNow] = useState(0);
+  const [deck, setDeckName] = useState(deckNow());
+
+  // First launch goes through the three stars.
+  useEffect(() => { loadOnboarded().then((done) => { if (!done) router.push('/welcome'); }); }, []);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30e3);
@@ -21,6 +26,7 @@ export default function Play() {
   useFocusEffect(
     useCallback(() => {
       setNow(Date.now());
+      setDeckName(deckNow());
       loadSkies().then(setSkies);
       loadSlow().then(setSlow);
     }, []),
@@ -60,6 +66,9 @@ export default function Play() {
           <Pressable accessibilityRole="button" onPress={() => router.push('/slow')} style={styles.slow}>
             <Text style={[styles.slowText, snap && !snap.done && { color: C.gold }]}>{slowLine}</Text>
           </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Deck: ${DECK[deck].name}. Change`} onPress={() => router.push('/decks')} style={styles.deck}>
+            <Text style={styles.deckText}>DECK · <Text style={{ color: C.gold }}>{DECK[deck].name.toUpperCase()}</Text></Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     </View>
@@ -74,4 +83,6 @@ const styles = StyleSheet.create({
   hint: { fontFamily: F.sans, fontSize: 15, color: C.faint },
   slow: { alignItems: 'center', paddingVertical: 10 },
   slowText: { fontFamily: F.sans, fontSize: 14, color: C.dim },
+  deck: { alignItems: 'center', paddingBottom: 10 },
+  deckText: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.faint },
 });

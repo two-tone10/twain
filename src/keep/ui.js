@@ -54,13 +54,20 @@ export function Reading({ line, style }) {
   );
 }
 
-export function WhyChip({ k }) {
+// A why's color and name. Tapping it opens that why's page.
+export function WhyChip({ k, link = true }) {
   const w = WHY[k];
-  return (
-    <View style={styles.chip}>
+  const body = (
+    <>
       <View style={[styles.dot, { backgroundColor: w.color }]} />
       <Text style={[styles.chipText, { color: w.color }]}>{w.name}</Text>
-    </View>
+    </>
+  );
+  if (!link) return <View style={styles.chip}>{body}</View>;
+  return (
+    <Pressable accessibilityRole="link" accessibilityLabel={`${w.name}: what it means and your history`} hitSlop={8} onPress={() => router.push(`/why/${k}`)} style={styles.chip}>
+      {body}
+    </Pressable>
   );
 }
 

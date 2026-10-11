@@ -14,6 +14,7 @@ import { Outcome } from '../keep/outcome';
 import { goHome } from '../keep/ui';
 import { addRound, addSky, loadSkies } from '../lib/storage';
 import { C, F, R, S } from '../lib/theme';
+import { deckNow } from '../lib/prefs';
 
 export default function Play() {
   const [phase, setPhase] = useState('play');
@@ -50,7 +51,7 @@ function Field({ skies, onDone }) {
 
   // Mutable game state lives in a ref and is only touched from the loop and touch handlers.
   const G = useRef(null);
-  const game = () => (G.current ??= { deck: deal(SOLO_PER_WHY), live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H) });
+  const game = () => (G.current ??= { deck: deal(SOLO_PER_WHY, Math.random, deckNow()), live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H) });
 
   const pts = () => layout(game().kept, geo.sky);
 

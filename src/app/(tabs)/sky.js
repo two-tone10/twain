@@ -1,23 +1,29 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import { tally } from '../../keep/insight.mjs';
 import { skyReadings } from '../../keep/modes.mjs';
+import { saidVsGrabbed, triad } from '../../keep/readings.mjs';
+import { WHY, poolFor } from '../../keep/content.mjs';
 import { drawConstellation, layout, record, useSkyFonts } from '../../keep/sky';
-import { Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
-import { loadHolds, loadList, loadRounds, loadSkies } from '../../lib/storage';
+import { Button, Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
+import { addToList, loadHolds, loadList, loadRounds, loadSkies } from '../../lib/storage';
+import { deckNow, loadSaid } from '../../lib/prefs';
 import { C, F, R, S } from '../../lib/theme';
 
 export default function Sky() {
   const { width: W } = useWindowDimensions();
   const fonts = useSkyFonts();
   const [data, setData] = useState(null);
+  const [offered, setOffered] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
-      Promise.all([loadSkies(), loadRounds(), loadHolds(), loadList()]).then(([skies, rounds, holds, list]) => setData({ skies, rounds, holds, list }));
+      setOffered(null);
+      Promise.all([loadSkies(), loadRounds(), loadHolds(), loadList(), loadSaid()]).then(([skies, rounds, holds, list, said]) => setData({ skies, rounds, holds, list, said, now: Date.now() }));
     }, []),
   );
 
@@ -35,14 +41,31 @@ export default function Sky() {
     });
   }, [fonts, data, W]);
 
+  // Reach · do · glad: three small constellations side by side.
+  const tri = useMemo(() => (data ? triad({ rounds: data.rounds, list: data.list, pool: poolFor(deckNow()), now: data.now }) : null), [data]);
+  const triW = W - 2 * S.lg, triH = 96;
+  const minis = useMemo(() => {
+    if (!tri || !(tri.reach || tri.do || tri.glad)) return null;
+    const cw = triW / 3;
+    return record(triW, triH, (c) => {
+      [tri.reach, tri.do, tri.glad].forEach((part, i) => {
+        if (!part) return;
+        const box = { x: i * cw + 10, y: 12, w: cw - 20, h: triH - 24 };
+        const pts = part.items.map((m, j) => ({ x: box.x + box.w * ((j + 0.5) / part.items.length), y: box.y + box.h * [0.3, 0.75, 0.15, 0.6, 0.9, 0.4][j % 6] }));
+        drawConstellation(c, part.items, pts, { labels: false });
+      });
+    });
+  }, [tri, triW]);
+
   if (!data) return <View style={styles.root} />;
   const r = skyReadings(data);
+  const svg = saidVsGrabbed(data.said, data.rounds);
+  const addOffer = async () => { await addToList([tri.offer]); Haptics.selectionAsync(); setOffered(tri.offer.t); };
   const counts = tally(data.rounds);
   const blocks = [
-    ['What you grab', r.grab?.line, 'Play a few drops and this fills in. It reads what you reach for fastest.'],
     ['What you hold', r.hold?.line, 'Play Drift to see what you won’t let fade.'],
-    ['What you do', r.live?.line, 'Tick off a couple of moments from your list and this shows what you actually make time for.'],
   ];
+  const parts = [['Reach', tri.reach], ['Do', tri.do], ['Glad', tri.glad]];
 
   return (
     <View style={styles.root}>
@@ -58,10 +81,46 @@ export default function Sky() {
             <Text style={styles.empty}>Your sky is empty for now. Every drop you play adds a constellation here.</Text>
           )}
 
-          {r.gap && (
-            <View style={styles.gap}>
+          {svg && (
+            <View style={styles.block}>
+              <Eyebrow>What you said · what you grab</Eyebrow>
+              {svg.left ? (
+                <Text style={styles.empty}>You said {WHY[svg.said[0]].name.toLowerCase()} and {WHY[svg.said[1]].name.toLowerCase()}. {svg.left} more drop{svg.left === 1 ? '' : 's'} and Keep will show you what your thumb says.</Text>
+              ) : (
+                <Reading line={svg.line} style={styles.big} />
+              )}
+            </View>
+          )}
+
+          <View style={styles.gap}>
+            <Eyebrow>Three answers</Eyebrow>
+            {minis && (
+              <Canvas style={{ width: triW, height: triH }}>
+                <Picture picture={minis} />
+              </Canvas>
+            )}
+            <View style={styles.trio}>
+              {parts.map(([label, part]) => (
+                <View key={label} style={styles.trioCol}>
+                  <Text style={styles.trioLabel}>{label.toUpperCase()}</Text>
+                  {part ? <WhyChip k={part.k} /> : <Text style={styles.trioEmpty}>not yet</Text>}
+                </View>
+              ))}
+            </View>
+            {tri.line ? <Reading line={tri.line} style={styles.big} /> : (
+              <Text style={styles.empty}>Reach is what you grab fastest. Do is what you tick off your list. Glad is what you’re glad you did. These fill in as you play and check back.</Text>
+            )}
+            {tri.offer && (offered ? (
+              <Text style={styles.empty}>Added <Text style={{ color: C.gold }}>{offered.toLowerCase()}</Text> to your list.</Text>
+            ) : (
+              <Button small label={`Add “${tri.offer.t}”`} onPress={addOffer} />
+            ))}
+          </View>
+
+          {r.gap && !tri.line && (
+            <View style={styles.block}>
               <Eyebrow>Where they differ</Eyebrow>
-              <Reading line={r.gap} style={styles.big} />
+              <Reading line={r.gap} />
             </View>
           )}
 
@@ -111,4 +170,8 @@ const styles = StyleSheet.create({
   tallyItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   tallyN: { fontFamily: F.sansMedium, fontSize: 12, color: C.ink },
   note: { fontFamily: F.sans, fontSize: 12, color: C.faint },
+  trio: { flexDirection: 'row' },
+  trioCol: { flex: 1, alignItems: 'center', gap: 4 },
+  trioLabel: { fontFamily: F.sansMedium, fontSize: 9, letterSpacing: 2.5, color: C.faint },
+  trioEmpty: { fontFamily: F.serifItalic, fontSize: 12, color: C.faint },
 });
