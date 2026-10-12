@@ -136,11 +136,12 @@ export function nextEvening(now = Date.now(), hour = EVENING_HOUR) {
   return d.getTime();
 }
 
-// The newest open moment on your list, or nothing (and then no nudge).
+// Tonight's plan if there is one, else the newest open moment that isn't "someday". Nothing means no nudge.
 export function eveningPick(list, now = Date.now()) {
-  const open = activeList(list, now).filter((it) => !it.done && it.didIt == null);
+  const open = activeList(list, now).filter((it) => !it.done && it.didIt == null && it.when !== 'someday');
   if (!open.length) return null;
-  const it = open.reduce((a, b) => (b.at > a.at ? b : a));
+  const tonight = open.filter((it) => it.when === 'tonight' && dayKey(it.at) === dayKey(now));
+  const it = (tonight.length ? tonight : open).reduce((a, b) => (b.at > a.at ? b : a));
   return { ...it, body: `Tonight’s star: ${lc(it.t)}.` };
 }
 

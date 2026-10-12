@@ -6,7 +6,8 @@ import * as Haptics from 'expo-haptics';
 import { WHY } from '../../keep/content.mjs';
 import { activeList, dayKey } from '../../keep/insight.mjs';
 import { dueCheckIns } from '../../keep/modes.mjs';
-import { Button, Eyebrow, StillSky, WhyChip } from '../../keep/ui';
+import { checkInAsk, planMeta } from '../../keep/plans.mjs';
+import { Button, Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
 import { answerCheckIn, loadList, toggleListItem } from '../../lib/storage';
 import { loadEvening, saveEvening } from '../../lib/prefs';
 import { allowReminders, scheduleEvening } from '../../keep/notify';
@@ -57,15 +58,19 @@ export default function List() {
   const today = dayKey(now);
   const due = now ? dueCheckIns(list, now)[0] : null;
   const open = activeList(list, now).filter((it) => !it.done && it.didIt == null && it.id !== due?.id);
-  const todays = open.filter((it) => dayKey(it.at) === today);
-  const week = open.filter((it) => dayKey(it.at) !== today);
+  const todays = open.filter((it) => (it.when ? it.when === 'tonight' && dayKey(it.at) === today : dayKey(it.at) === today));
+  const someday = open.filter((it) => it.when === 'someday');
+  const week = open.filter((it) => !todays.includes(it) && !someday.includes(it));
   const done = list.filter((it) => it.done || it.didIt).sort((a, b) => (b.doneAt ?? b.at) - (a.doneAt ?? a.at));
 
   const row = (it, i) => (
     <Pressable key={it.id} onPress={() => toggle(it.id)} accessibilityRole="checkbox" accessibilityState={{ checked: false }} style={[styles.todo, i > 0 && styles.line]}>
       <View style={[styles.tick, { borderColor: WHY[it.k].color }]} />
-      <Text style={styles.todoText}>{it.t}</Text>
-      {dayKey(it.at) !== today && <Text style={styles.day}>{new Date(it.at).toLocaleDateString(undefined, { weekday: 'short' })}</Text>}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.todoText}>{it.t}</Text>
+        {planMeta(it, now) ? <Text style={styles.day}>{planMeta(it, now)}</Text> : null}
+      </View>
+      {!it.when && dayKey(it.at) !== today && <Text style={styles.day}>{new Date(it.at).toLocaleDateString(undefined, { weekday: 'short' })}</Text>}
     </Pressable>
   );
 
@@ -82,9 +87,7 @@ export default function List() {
 
           {due && !glad && (
             <View style={styles.card}>
-              <Text style={styles.ask}>
-                {dayKey(due.at) === dayKey(now - 864e5) ? 'Yesterday' : 'Earlier this week'} you picked <Text style={styles.em}>{due.t.toLowerCase()}</Text>. Did you get to it?
-              </Text>
+              <Reading line={checkInAsk(due, now)} style={styles.ask} />
               <View style={styles.answers}>
                 <Button small label="Yes" onPress={() => answer(due, true)} style={{ flex: 1 }} />
                 <Button small ghost label="Not this time" onPress={() => answer(due, false)} style={{ flex: 1.4 }} />
@@ -101,8 +104,8 @@ export default function List() {
             </View>
           )}
 
-          {!todays.length && !week.length && !done.length && !due && (
-            <Text style={styles.empty}>Nothing here yet. After a round, pick a moment to bring into today and it will wait here for a week.</Text>
+          {!todays.length && !week.length && !someday.length && !done.length && !due && (
+            <Text style={styles.empty}>Nothing here yet. After a round, tap “Make one real” and the star you pick waits here with its day.</Text>
           )}
 
           {todays.length > 0 && (
@@ -117,6 +120,13 @@ export default function List() {
             <View style={styles.section}>
               <Eyebrow>This week</Eyebrow>
               {week.map(row)}
+            </View>
+          )}
+
+          {someday.length > 0 && (
+            <View style={styles.section}>
+              <Eyebrow>Someday</Eyebrow>
+              {someday.map(row)}
             </View>
           )}
 

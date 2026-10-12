@@ -1,15 +1,19 @@
 // The end of a solo drop, fast or slow: the final cut, then what the round says about you.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BASKET, CUT_MS } from './content.mjs';
-import { cutPair, headline, soloLines, tally } from './insight.mjs';
+import { BASKET, CUT_MS, WHY } from './content.mjs';
+import { cutPair, headline, soloLines } from './insight.mjs';
+import { SAID_ROUNDS as PATTERN_ROUNDS } from './readings.mjs';
+import { WHENS, askAtFor, followUp, rememberPeople, withLabel } from './plans.mjs';
 import { drawConstellation, layout, record, useSkyFonts } from './sky';
-import { Button, Eyebrow, goHome, Reading, StillSky, WhyChip } from './ui';
+import { Button, Eyebrow, goHome, Reading, StillSky } from './ui';
 import { addToList, loadRounds } from '../lib/storage';
+import { loadPeople, savePeople } from '../lib/prefs';
 import { C, F, R, S } from '../lib/theme';
 
 export function Outcome({ g, onAgain, againLabel = 'Drop again' }) {
@@ -76,17 +80,82 @@ function FinalCut({ pair, onDone }) {
 
 /* ---------------- results ---------------- */
 
+// Read the round, then make one star real: pick it, say when and with whom, and it lands on your list.
 function Results({ g, onAgain, againLabel }) {
+  const [step, setStep] = useState('read');
+  const order = g.keeper ? [g.keeper, ...g.kept.filter((m) => m !== g.keeper)] : g.kept;
+  const [pick, setPick] = useState(null);
+  const [plan, setPlan] = useState(null);
+
+  if (step === 'pick') {
+    return (
+      <Shell>
+        <Eyebrow>Make one real</Eyebrow>
+        <Text style={styles.h2}>Which of these could actually happen this week?</Text>
+        <View style={{ gap: 8 }}>
+          {order.map((m) => (
+            <Pressable key={m.t} accessibilityRole="button" onPress={() => { Haptics.selectionAsync(); setPick(m); setStep('plan'); }} style={({ pressed }) => [styles.card, pressed && styles.cardOn]}>
+              <View style={[styles.dot, { backgroundColor: WHY[m.k].color }]} />
+              <Text style={styles.cardText}>{m.t}</Text>
+              {m === g.keeper && <Text style={styles.cutTag}>FINAL CUT</Text>}
+            </Pressable>
+          ))}
+        </View>
+        <Button ghost label="Just playing today" onPress={() => setStep('skip')} />
+      </Shell>
+    );
+  }
+  if (step === 'plan') return <MakePlan m={pick} onBack={() => setStep('pick')} onDone={(p) => { setPlan(p); setStep('done'); }} />;
+  if (step === 'done' || step === 'skip') {
+    return (
+      <Shell>
+        {plan ? (
+          <>
+            <Eyebrow>On your list</Eyebrow>
+            <View style={styles.plan}>
+              <Text style={styles.planWhen}>{WHENS.find((w) => w.key === plan.when).label.toUpperCase()}</Text>
+              <Text style={styles.planText}>{plan.t}</Text>
+              {plan.with.length > 0 && <Text style={styles.small}>with {withLabel(plan.with)}</Text>}
+            </View>
+            <Text style={styles.sub}>{followUp(plan.when)}{plan.when !== 'someday' ? ' If you’re glad you did, it shows up on Sky.' : ''}</Text>
+          </>
+        ) : (
+          <>
+            <Eyebrow>Just playing</Eyebrow>
+            <Text style={styles.h2}>Fine by me. Your constellation is saved in your sky.</Text>
+          </>
+        )}
+        <View style={{ flex: 1 }} />
+        {onAgain && <Button label={againLabel} onPress={onAgain} />}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Button ghost label="Home" onPress={() => goHome()} style={{ flex: 1 }} />
+          <Button ghost label="Your sky" onPress={() => router.navigate('/sky')} style={{ flex: 1 }} />
+        </View>
+      </Shell>
+    );
+  }
+  return <Reading1 g={g} onNext={g.kept.length ? () => setStep('pick') : null} onAgain={onAgain} againLabel={againLabel} />;
+}
+
+function Shell({ children }) {
+  return (
+    <View style={styles.root}>
+      <StillSky />
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={[styles.results, { flexGrow: 1 }]} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+// The short reading: constellation, headline, a line or two, and how far along your pattern is.
+function Reading1({ g, onNext, onAgain, againLabel }) {
   const { width: W } = useWindowDimensions();
   const fonts = useSkyFonts();
-  const [rounds, setRounds] = useState([]);
-  const order = g.keeper ? [g.keeper, ...g.kept.filter((m) => m !== g.keeper)] : g.kept;
-  const [picks, setPicks] = useState(() => new Set(g.keeper ? [0] : []));
-  const [added, setAdded] = useState(null);
-  useEffect(() => { loadRounds().then(setRounds); }, []);
+  const [played, setPlayed] = useState(null);
+  useEffect(() => { loadRounds().then((r) => setPlayed(r.filter((x) => x.items?.length).length)); }, []);
 
-  const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null });
-  const counts = tally(rounds);
+  const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null }).slice(0, 2);
   const heroH = 200;
   const hero = useMemo(() => {
     if (!fonts) return null;
@@ -94,84 +163,102 @@ function Results({ g, onAgain, againLabel }) {
     return record(W, heroH, (c) => drawConstellation(c, g.kept, layout(g.kept, box), { font: fonts.small, box, bright: true }));
   }, [fonts, W, g.kept]);
 
-  const toggle = (i) => setPicks((s) => { const n = new Set(s); if (n.has(i)) n.delete(i); else n.add(i); return n; });
-  const add = async () => {
-    const items = [...picks].map((i) => order[i]);
-    if (items.length) await addToList(items);
-    setAdded(items);
+  return (
+    <Shell>
+      <Eyebrow>Your constellation · {g.kept.length} of {BASKET}</Eyebrow>
+      {hero && g.kept.length > 0 && (
+        <Canvas style={{ width: W, height: heroH, marginHorizontal: -S.lg, backgroundColor: 'transparent' }}>
+          <Picture picture={hero} />
+        </Canvas>
+      )}
+      <Text style={styles.h2}>{headline(g.kept)}</Text>
+      <View style={{ gap: 10 }}>
+        {lines.map((l, i) => <Reading key={i} line={l} />)}
+      </View>
+      {played != null && (played < PATTERN_ROUNDS ? (
+        <View style={styles.progress}>
+          <View style={styles.slots}>
+            {Array.from({ length: PATTERN_ROUNDS }, (_, i) => <View key={i} style={[styles.slot, i < played && styles.slotOn]} />)}
+          </View>
+          <Text style={styles.small}>One round is a snapshot. Your pattern shows up after {PATTERN_ROUNDS}.</Text>
+        </View>
+      ) : (
+        <Pressable onPress={() => router.navigate('/sky')} style={styles.progress}>
+          <Text style={styles.small}>This round is in your sky now. <Text style={{ color: C.gold }}>See what it adds ›</Text></Text>
+        </Pressable>
+      ))}
+      <View style={{ flex: 1 }} />
+      {onNext ? <Button label="Make one real" onPress={onNext} /> : null}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Button ghost label="Home" onPress={() => goHome()} style={{ flex: 1 }} />
+        {onAgain && <Button ghost={!!onNext} label={againLabel} onPress={onAgain} style={{ flex: 1.4 }} />}
+      </View>
+    </Shell>
+  );
+}
+
+// Two taps make a generic star yours: when, and with whom.
+function MakePlan({ m, onBack, onDone }) {
+  const [when, setWhen] = useState('weekend');
+  const [people, setPeople] = useState([]);
+  const [chosen, setChosen] = useState([]);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  useEffect(() => { loadPeople().then(setPeople); }, []);
+
+  const toggle = (n) => { Haptics.selectionAsync(); setChosen((c) => (c.includes(n) ? c.filter((x) => x !== n) : [...c, n])); };
+  const addName = () => {
+    const n = name.trim();
+    if (n) { setPeople((p) => (p.includes(n) ? p : [n, ...p])); setChosen((c) => (c.includes(n) ? c : [...c, n])); }
+    setName('');
+    setAdding(false);
+  };
+  const save = async () => {
+    const p = { t: m.t, k: m.k, when, with: chosen, askAt: askAtFor(when) };
+    await addToList([p]);
+    if (chosen.length) await savePeople(rememberPeople(people, chosen));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onDone(p);
   };
 
   return (
-    <View style={styles.root}>
-      <StillSky />
-      <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.results}>
-          <Eyebrow>Your constellation · {g.kept.length} of {BASKET}</Eyebrow>
-          {hero && g.kept.length > 0 && (
-            <Canvas style={{ width: W, height: heroH, marginHorizontal: -S.lg, backgroundColor: 'transparent' }}>
-              <Picture picture={hero} />
-            </Canvas>
-          )}
-          <Text style={styles.h2}>{headline(g.kept)}</Text>
-          <View style={{ gap: 10 }}>
-            {lines.map((l, i) => <Reading key={i} line={l} />)}
-          </View>
-
-          <View>
-            {order.map((m) => (
-              <View key={m.t} style={styles.row}>
-                <Text style={styles.rowText}>
-                  {m.t}
-                  {m === g.keeper && <Text style={styles.cutTag}>  FINAL CUT</Text>}
-                </Text>
-                <WhyChip k={m.k} />
-              </View>
-            ))}
-          </View>
-
-          {g.kept.length > 0 && added === null && (
-            <View style={styles.bring}>
-              <Eyebrow>Bring one into today?</Eyebrow>
-              <Text style={styles.small}>Pick anything you might actually do. It waits on the home screen for a week.</Text>
-              <View style={styles.picks}>
-                {order.map((m, i) => (
-                  <Pressable key={m.t} accessibilityRole="checkbox" accessibilityState={{ checked: picks.has(i) }} onPress={() => toggle(i)} style={[styles.pick, picks.has(i) && styles.pickOn]}>
-                    <Text style={[styles.pickText, picks.has(i) && { color: C.ink }]}>{m.t}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Button small ghost label={picks.size ? `Add ${picks.size} to today` : 'Not today'} onPress={add} />
-            </View>
-          )}
-          {added?.length > 0 && (
-            <View style={styles.bring}>
-              <Eyebrow>On your list</Eyebrow>
-              <Text style={styles.rowText}>{added.map((m) => m.t).join(' · ')}</Text>
-              <Text style={styles.small}>It’s on the home screen. Tick it off if it happens.</Text>
-            </View>
-          )}
-
-          {rounds.length > 1 && (
-            <View style={styles.bring}>
-              <Eyebrow>Across {rounds.length} rounds</Eyebrow>
-              <View style={styles.picks}>
-                {counts.map(([k, n]) => (
-                  <View key={k} style={styles.tallyItem}>
-                    <WhyChip k={k} />
-                    <Text style={styles.tallyN}>{n}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: S.md }}>
-            <Button ghost label="Home" onPress={() => goHome()} style={{ flex: 1 }} />
-            {onAgain && <Button label={againLabel} onPress={onAgain} style={{ flex: 2 }} />}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+    <Shell>
+      <Eyebrow>Make it yours</Eyebrow>
+      <View style={styles.titleRow}>
+        <View style={[styles.dot, { backgroundColor: WHY[m.k].color }]} />
+        <Text style={styles.h2}>{m.t}</Text>
+      </View>
+      <Text style={styles.label}>WHEN</Text>
+      <View style={styles.picks}>
+        {WHENS.map((w) => (
+          <Pressable key={w.key} accessibilityRole="radio" accessibilityState={{ selected: when === w.key }} onPress={() => { Haptics.selectionAsync(); setWhen(w.key); }} style={[styles.pick, when === w.key && styles.pickOn]}>
+            <Text style={[styles.pickText, when === w.key && { color: C.dark }]}>{w.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.label}>WITH</Text>
+      <View style={styles.picks}>
+        <Pressable accessibilityRole="radio" accessibilityState={{ selected: !chosen.length }} onPress={() => setChosen([])} style={[styles.pick, !chosen.length && styles.pickOn]}>
+          <Text style={[styles.pickText, !chosen.length && { color: C.dark }]}>Just me</Text>
+        </Pressable>
+        {people.map((n) => (
+          <Pressable key={n} accessibilityRole="checkbox" accessibilityState={{ checked: chosen.includes(n) }} onPress={() => toggle(n)} style={[styles.pick, chosen.includes(n) && styles.pickOn]}>
+            <Text style={[styles.pickText, chosen.includes(n) && { color: C.dark }]}>{n}</Text>
+          </Pressable>
+        ))}
+        {!adding && (
+          <Pressable accessibilityRole="button" onPress={() => setAdding(true)} style={styles.pick}>
+            <Text style={styles.pickText}>+ Someone</Text>
+          </Pressable>
+        )}
+      </View>
+      {adding && (
+        <TextInput autoFocus value={name} onChangeText={setName} onSubmitEditing={addName} onBlur={addName} returnKeyType="done" placeholder="Their name" placeholderTextColor={C.faint} maxLength={24} style={styles.input} />
+      )}
+      <View style={{ flex: 1 }} />
+      <Button label="Put it on my list" onPress={save} />
+      <Button ghost label="Pick a different one" onPress={onBack} />
+    </Shell>
   );
 }
 
@@ -197,9 +284,23 @@ const styles = StyleSheet.create({
   bring: { gap: 10, borderTopWidth: 1, borderTopColor: 'rgba(216,180,106,0.3)', paddingTop: S.md },
   small: { fontFamily: F.sans, fontSize: 13, color: C.faint },
   picks: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pick: { paddingVertical: 8, paddingHorizontal: 13, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
-  pickOn: { borderColor: C.gold, backgroundColor: 'rgba(216,180,106,0.12)' },
-  pickText: { fontFamily: F.serif, fontSize: 15, color: C.dim },
+  pick: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
+  pickOn: { borderColor: C.ink, backgroundColor: C.ink },
+  pickText: { fontFamily: F.sansMedium, fontSize: 14, color: C.dim },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, paddingHorizontal: 16, borderRadius: R.xl, borderWidth: 1, borderColor: C.line, backgroundColor: 'rgba(20,25,56,0.75)' },
+  cardOn: { borderColor: C.glow },
+  cardText: { flex: 1, fontFamily: F.serif, fontSize: 19, color: C.ink },
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  label: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.faint, marginTop: 4 },
+  input: { borderWidth: 1, borderColor: C.gold, backgroundColor: 'rgba(20,25,56,0.8)', borderRadius: R.lg, paddingVertical: 12, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
+  plan: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  planWhen: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
+  planText: { fontFamily: F.serifRegular, fontSize: 26, lineHeight: 31, color: C.ink },
+  progress: { gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
+  slots: { flexDirection: 'row', gap: 10 },
+  slot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(239,230,214,0.4)', borderStyle: 'dashed' },
+  slotOn: { backgroundColor: C.star, borderWidth: 0, shadowColor: C.glow, shadowOpacity: 1, shadowRadius: 5 },
   tallyItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   tallyN: { fontFamily: F.sansMedium, fontSize: 12, color: C.ink },
 });

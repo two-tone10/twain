@@ -42,7 +42,11 @@ export const addSky = (kept) => append('keep:skies', [kept.map(({ t, k }) => ({ 
 
 // Moments you chose to try. They wait a week, then quietly drop off.
 export const loadList = () => load('keep:list', []);
-export const addToList = (items) => append('keep:list', items.map(({ t, k }) => ({ id: Math.random().toString(36).slice(2, 9), t, k, at: Date.now(), done: false })), 300);
+// A plan also carries when, who with, and when to ask how it went.
+export const addToList = (items) => append('keep:list', items.map(({ t, k, when, with: people, askAt }) => ({
+  id: Math.random().toString(36).slice(2, 9), t, k, at: Date.now(), done: false,
+  ...(when ? { when, with: people ?? [], askAt: askAt ?? null } : {}),
+})), 300);
 export async function answerCheckIn(id, answer) {
   const all = await load('keep:list', []);
   const it = all.find((x) => x.id === id);

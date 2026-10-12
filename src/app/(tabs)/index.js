@@ -63,6 +63,7 @@ export default function Play() {
             <Button ghost label="Drift" onPress={() => router.push('/drift')} style={{ flex: 1 }} />
             <Button ghost label="Duel" onPress={() => router.push('/duel')} style={{ flex: 1 }} />
           </View>
+          <Button ghost label="Pass it around · 2–6 players" onPress={() => router.push('/pass')} />
           <Pressable accessibilityRole="button" onPress={() => router.push('/slow')} style={styles.slow}>
             <Text style={[styles.slowText, snap && !snap.done && { color: C.gold }]}>{slowLine}</Text>
           </Pressable>

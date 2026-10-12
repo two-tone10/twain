@@ -102,8 +102,10 @@ export function fmtLeft(ms) {
 
 /* ---------- the list: did you get to it? ---------- */
 
-// Unticked items from an earlier day that haven't been asked about yet.
-export const dueCheckIns = (list, now = Date.now()) => list.filter((it) => !it.done && it.didIt == null && dayKey(it.at) !== dayKey(now));
+// Unticked items that haven't been asked about yet: a plan once its check-in time comes
+// ("someday" never asks), anything else from the next day on.
+export const dueCheckIns = (list, now = Date.now()) => list.filter((it) => !it.done && it.didIt == null
+  && (it.when ? it.askAt != null && now >= it.askAt : dayKey(it.at) !== dayKey(now)));
 
 /* ---------- your sky: grab, hold, do ---------- */
 

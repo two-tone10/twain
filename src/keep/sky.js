@@ -175,6 +175,15 @@ export function drawConstellation(c, items, pts, { font, alpha = 1, labels = tru
   });
 }
 
+// One person's constellation in their own color, for the family sky. Positions come from skyPoint
+// without spreading, so a moment two people kept lands on the same spot.
+const strokes = {};
+export function drawColored(c, pts, color, alpha = 0.85) {
+  const line = (strokes[color] ||= make(color, { stroke: 1.3 }));
+  pts.forEach((pt, i) => { if (i) c.drawLine(pts[i - 1].x, pts[i - 1].y, pt.x, pt.y, a(line, alpha * 0.8)); });
+  pts.forEach((pt) => { c.drawCircle(pt.x, pt.y, 5.5, a(tint(color), alpha * 0.35)); drawStar(c, pt.x, pt.y, 2.4, alpha); });
+}
+
 export function drawGhosts(c, skies, box) {
   const p = paints();
   skies.slice(-3).reverse().forEach((items, n) => {
