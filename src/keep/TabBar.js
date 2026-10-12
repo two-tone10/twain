@@ -1,8 +1,8 @@
-// A quiet bar of three words. The current one is gold with a small star under it.
+// A quiet bar of four words. The current one is gold with a small star under it.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { C, F } from '../lib/theme';
 
-const LABELS = { index: 'Play', sky: 'Sky', list: 'List' };
+const LABELS = { index: 'Play', sky: 'Sky', list: 'List', kept: 'Kept' };
 
 export function TabBar({ state, navigation, insets, dots = {} }) {
   return (

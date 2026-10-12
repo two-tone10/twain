@@ -15,6 +15,9 @@ export async function save(key, value) {
   } catch {}
 }
 
+// Rounds, holds and the list are your codex, so they're kept. This ceiling is years of daily play.
+const KEEP_ALL = 20000;
+
 async function append(key, items, max) {
   const next = [...(await load(key, [])), ...items].slice(-max);
   await save(key, next);
@@ -25,12 +28,12 @@ async function append(key, items, max) {
 export const loadRounds = () => load('keep:rounds', []);
 // `items` keeps each grab's dwell (how far it had fallen), which is how Your sky reads speed.
 export const addRound = (kept, mode = 'drop') =>
-  append('keep:rounds', [{ kept: kept.map((m) => m.k), items: kept.map(({ t, k, dwell }) => ({ t, k, dwell })), mode, at: Date.now() }], 200);
+  append('keep:rounds', [{ kept: kept.map((m) => m.k), items: kept.map(({ t, k, dwell }) => ({ t, k, dwell })), mode, at: Date.now() }], KEEP_ALL);
 
 // Drift rounds: what survived, and how long each star was held.
 export const loadHolds = () => load('keep:holds', []);
 export const addHold = (stars) =>
-  append('keep:holds', [{ held: stars.filter((s) => s.goneAt == null).map(({ t, k, holdMs }) => ({ t, k, holdMs })), at: Date.now() }], 200);
+  append('keep:holds', [{ held: stars.filter((s) => s.goneAt == null).map(({ t, k, holdMs }) => ({ t, k, holdMs })), at: Date.now() }], KEEP_ALL);
 
 // The one slow drop in progress, if any.
 export const loadSlow = () => load('keep:slow', null);
@@ -46,7 +49,7 @@ export const loadList = () => load('keep:list', []);
 export const addToList = (items) => append('keep:list', items.map(({ t, k, when, with: people, askAt }) => ({
   id: Math.random().toString(36).slice(2, 9), t, k, at: Date.now(), done: false,
   ...(when ? { when, with: people ?? [], askAt: askAt ?? null } : {}),
-})), 300);
+})), KEEP_ALL);
 export async function answerCheckIn(id, answer) {
   const all = await load('keep:list', []);
   const it = all.find((x) => x.id === id);

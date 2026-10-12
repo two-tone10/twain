@@ -27,6 +27,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="sky" />
       <Tabs.Screen name="list" />
+      <Tabs.Screen name="kept" />
     </Tabs>
   );
 }

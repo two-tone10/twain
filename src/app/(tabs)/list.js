@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -19,6 +19,8 @@ export default function List() {
   const [list, setList] = useState([]);
   const [now, setNow] = useState(0);
   const [glad, setGlad] = useState(null);
+  const [noteFor, setNoteFor] = useState(null);
+  const [noteText, setNoteText] = useState('');
   const [note, setNote] = useState('');
   const [evening, setEvening] = useState(false);
 
@@ -51,8 +53,17 @@ export default function List() {
   };
   const answerGlad = async (yes) => {
     update(await answerCheckIn(glad.id, { glad: yes }));
+    if (yes) setNoteFor(glad);
+    else flash('Noted. Worth knowing too.');
     setGlad(null);
-    flash(yes ? 'Good. Noted in your sky.' : 'Noted. Worth knowing too.');
+  };
+  // One optional line for the codex. Asked once, easy to skip.
+  const saveNote = async () => {
+    const n = noteText.trim();
+    if (n) update(await answerCheckIn(noteFor.id, { note: n }));
+    setNoteFor(null);
+    setNoteText('');
+    flash(n ? 'Kept, with your note.' : 'Kept.');
   };
 
   const today = dayKey(now);
@@ -85,12 +96,21 @@ export default function List() {
             <Text style={styles.em}>actually do.</Text>
           </Text>
 
-          {due && !glad && (
+          {due && !glad && !noteFor && (
             <View style={styles.card}>
               <Reading line={checkInAsk(due, now)} style={styles.ask} />
               <View style={styles.answers}>
                 <Button small label="Yes" onPress={() => answer(due, true)} style={{ flex: 1 }} />
                 <Button small ghost label="Not this time" onPress={() => answer(due, false)} style={{ flex: 1.4 }} />
+              </View>
+            </View>
+          )}
+          {noteFor && (
+            <View style={styles.card}>
+              <Text style={styles.ask}>What made it good?</Text>
+              <TextInput value={noteText} onChangeText={setNoteText} placeholder="One line for your codex (optional)" placeholderTextColor={C.faint} maxLength={120} style={styles.noteIn} returnKeyType="done" onSubmitEditing={saveNote} />
+              <View style={styles.answers}>
+                <Button small label={noteText.trim() ? 'Keep it' : 'Skip'} onPress={saveNote} style={{ flex: 1 }} />
               </View>
             </View>
           )}
@@ -172,6 +192,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: 'rgba(20,25,56,0.8)', borderColor: 'rgba(216,180,106,0.4)', borderWidth: 1, borderRadius: R.xl, padding: S.md },
   ask: { fontFamily: F.serifRegular, fontSize: 18, lineHeight: 25, color: C.ink, marginBottom: S.sm },
   answers: { flexDirection: 'row', gap: S.sm },
+  noteIn: { borderWidth: 1, borderColor: C.line, backgroundColor: 'rgba(5,6,15,0.5)', borderRadius: R.lg, paddingVertical: 11, paddingHorizontal: 12, color: C.ink, fontFamily: F.serifItalic, fontSize: 16, marginBottom: S.sm },
   empty: { fontFamily: F.sans, fontSize: 15, lineHeight: 22, color: C.faint },
   section: { gap: 2, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   evening: { flexDirection: 'row', alignItems: 'center', gap: S.md },
