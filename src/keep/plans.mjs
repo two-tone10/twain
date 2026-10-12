@@ -65,3 +65,15 @@ export function checkInAsk(it, now = Date.now()) {
 
 // Remembered names, most recent first, at most eight.
 export const rememberPeople = (known, used) => [...used.filter(Boolean), ...known.filter((n) => !used.includes(n))].slice(0, 8);
+
+// What the home-screen widget shows: tonight's plan, then the next plan by check-in time,
+// then the newest open moment. Someday plans stay off it.
+export function widgetPick(list, now = Date.now()) {
+  const open = list.filter((it) => !it.done && it.didIt == null && it.when !== 'someday' && (it.askAt ?? it.at + 7 * 864e5) > now - 864e5);
+  if (!open.length) return null;
+  const tonight = open.filter((it) => it.when === 'tonight' && dayKey(it.at) === dayKey(now));
+  const plans = open.filter((it) => it.when && it.when !== 'tonight').sort((a, b) => a.askAt - b.askAt);
+  const it = tonight[0] ?? plans[0] ?? open.reduce((a, b) => (b.at > a.at ? b : a));
+  const when = it.when ? (whenLabel(it, now) ?? '').toUpperCase() : 'ON YOUR LIST';
+  return { t: it.t, k: it.k, when, sub: it.with?.length ? `with ${withLabel(it.with)}` : '' };
+}

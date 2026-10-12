@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { askAtFor, checkInAsk, followUp, planMeta, rememberPeople, withLabel } from './plans.mjs';
+import { askAtFor, checkInAsk, followUp, planMeta, rememberPeople, widgetPick, withLabel } from './plans.mjs';
 import { activeList } from './insight.mjs';
 import { dueCheckIns } from './modes.mjs';
 
@@ -41,4 +41,18 @@ test('plans are asked about on time, someday never', () => {
   assert.deepEqual(dueCheckIns(list, now).map((x) => x.id), [3]);
   assert.deepEqual(dueCheckIns(list, d(2026, 9, 18, 19)).map((x) => x.id), [1, 3]);
   assert.deepEqual(activeList(list, now + 20 * 864e5).map((x) => x.id), [2]);
+});
+
+test('the widget shows tonight first, then the next plan, then the newest moment', () => {
+  const now = d(2026, 9, 14, 12);
+  const base = [
+    { t: 'Old', k: 'skill', at: now - 3600e3 },
+    { t: 'Weekend dinner', k: 'company', at: now - 7200e3, when: 'weekend', with: ['Jen'], askAt: askAtFor('weekend', now) },
+    { t: 'Someday trip', k: 'novelty', at: now, when: 'someday', askAt: null },
+  ];
+  assert.deepEqual(widgetPick(base, now), { t: 'Weekend dinner', k: 'company', when: 'THIS WEEKEND', sub: 'with Jen' });
+  const withTonight = [...base, { t: 'Call your brother', k: 'company', at: now, when: 'tonight', with: [], askAt: askAtFor('tonight', now) }];
+  assert.equal(widgetPick(withTonight, now).t, 'Call your brother');
+  assert.equal(widgetPick([base[0]], now).when, 'ON YOUR LIST');
+  assert.equal(widgetPick([], now), null);
 });

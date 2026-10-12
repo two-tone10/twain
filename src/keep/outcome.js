@@ -13,6 +13,7 @@ import { WHENS, askAtFor, followUp, rememberPeople, withLabel } from './plans.mj
 import { drawConstellation, layout, record, useSkyFonts } from './sky';
 import { Button, Eyebrow, goHome, Reading, StillSky } from './ui';
 import { addToList, loadRounds } from '../lib/storage';
+import { shareSky } from './share';
 import { loadPeople, savePeople } from '../lib/prefs';
 import { C, F, R, S } from '../lib/theme';
 
@@ -175,6 +176,11 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
       <View style={{ gap: 10 }}>
         {lines.map((l, i) => <Reading key={i} line={l} />)}
       </View>
+      {fonts && g.kept.length > 0 && (
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={() => shareSky(g.kept, headline(g.kept), fonts).catch(() => {})}>
+          <Text style={styles.share}>Share your sky ›</Text>
+        </Pressable>
+      )}
       {played != null && (played < PATTERN_ROUNDS ? (
         <View style={styles.progress}>
           <View style={styles.slots}>
@@ -297,6 +303,7 @@ const styles = StyleSheet.create({
   plan: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
   planWhen: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
   planText: { fontFamily: F.serifRegular, fontSize: 26, lineHeight: 31, color: C.ink },
+  share: { fontFamily: F.sansMedium, fontSize: 13, letterSpacing: 1, color: C.gold },
   progress: { gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   slots: { flexDirection: 'row', gap: 10 },
   slot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(239,230,214,0.4)', borderStyle: 'dashed' },

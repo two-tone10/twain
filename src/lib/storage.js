@@ -43,19 +43,25 @@ export const saveSlow = (s) => save('keep:slow', s);
 export const loadSkies = () => load('keep:skies', []);
 export const addSky = (kept) => append('keep:skies', [kept.map(({ t, k }) => ({ t, k }))], 12);
 
-// Moments you chose to try. They wait a week, then quietly drop off.
+// Whoever needs to know the list changed (the home-screen widget). Set once in the root layout.
+let onList = null;
+export const onListChange = (fn) => { onList = fn; };
+const listChanged = (all) => { try { onList?.(all); } catch {} return all; };
+
+// Moments and plans you chose to try. Open ones leave the List after a while; done ones stay in Kept for good.
 export const loadList = () => load('keep:list', []);
 // A plan also carries when, who with, and when to ask how it went.
-export const addToList = (items) => append('keep:list', items.map(({ t, k, when, with: people, askAt }) => ({
+export const addToList = (items) => appendList(items);
+const appendList = async (items) => listChanged(await append('keep:list', items.map(({ t, k, when, with: people, askAt }) => ({
   id: Math.random().toString(36).slice(2, 9), t, k, at: Date.now(), done: false,
   ...(when ? { when, with: people ?? [], askAt: askAt ?? null } : {}),
-})), KEEP_ALL);
+})), KEEP_ALL));
 export async function answerCheckIn(id, answer) {
   const all = await load('keep:list', []);
   const it = all.find((x) => x.id === id);
   if (it) Object.assign(it, answer, answer.didIt ? { doneAt: Date.now() } : {});
   await save('keep:list', all);
-  return all;
+  return listChanged(all);
 }
 
 export async function toggleListItem(id) {
@@ -63,6 +69,7 @@ export async function toggleListItem(id) {
   const it = all.find((x) => x.id === id);
   if (it) { it.done = !it.done; it.doneAt = it.done ? Date.now() : null; }
   await save('keep:list', all);
+  listChanged(all);
   return { all, item: it };
 }
 

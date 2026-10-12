@@ -1,6 +1,6 @@
 // Kept: everything you've done and everything you've reached for, from your first round on.
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
@@ -10,6 +10,8 @@ import { withLabel } from '../../keep/plans.mjs';
 import { drawBands, drawCaps, drawDot, record, useSkyFonts } from '../../keep/sky';
 import { Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
 import { loadList, loadRounds } from '../../lib/storage';
+import { exportBackup, pickBackup, restoreBackup } from '../../lib/backup';
+import { loadPrefs } from '../../lib/prefs';
 import { C, F, R, S } from '../../lib/theme';
 
 const KEYS = WHYS.map((w) => w.key);
@@ -23,9 +25,22 @@ export default function Kept() {
   const [data, setData] = useState(null);
   const [weeks, setWeeks] = useState(null);
 
-  useFocusEffect(useCallback(() => {
+  const reload = useCallback(() => {
     Promise.all([loadRounds(), loadList()]).then(([rounds, list]) => setData({ rounds, list, now: Date.now() }));
-  }, []));
+  }, []);
+  useFocusEffect(reload);
+
+  const backUp = () => exportBackup().catch(() => Alert.alert('Couldn’t make a backup', 'Try again in a moment.'));
+  const restore = async () => {
+    let b;
+    try { b = await pickBackup(); } catch { Alert.alert('That isn’t a Keep backup', 'Pick a file named “Keep backup” that you saved from this screen.'); return; }
+    if (!b) return;
+    const when = new Date(b.at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    Alert.alert('Restore this backup?', `From ${when}: ${b.done} moments done, ${b.rounds} rounds. It replaces what’s on this phone now.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Restore', style: 'destructive', onPress: async () => { await restoreBackup(b.backup); await loadPrefs(); reload(); } },
+    ]);
+  };
 
   const cw = W - 2 * S.lg;
   const tl = useMemo(() => (data ? timeline(data.list, data.now, weeks) : null), [data, weeks]);
@@ -181,6 +196,15 @@ export default function Kept() {
               </View>
             ))}
           </View>
+          {/* 5. keeping it safe */}
+          <View style={styles.block}>
+            <Eyebrow>Keep it safe</Eyebrow>
+            <Text style={styles.empty}>Everything here lives only on this phone. iPhone’s own iCloud Backup includes it. To be sure, save a copy to Files or iCloud Drive now and then.</Text>
+            <View style={styles.safeRow}>
+              <Pressable accessibilityRole="button" onPress={backUp} style={styles.safeB}><Text style={styles.safeT}>Back up</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={restore} style={styles.safeB}><Text style={styles.safeT}>Restore from a backup</Text></Pressable>
+            </View>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -233,5 +257,8 @@ const styles = StyleSheet.create({
   entryT: { fontFamily: F.serif, fontSize: 17, color: C.ink },
   entryM: { fontFamily: F.sans, fontSize: 12, color: C.faint },
   glad: { fontFamily: F.serifItalic, color: C.gold, fontSize: 13 },
+  safeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  safeB: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
+  safeT: { fontFamily: F.sansMedium, fontSize: 14, color: C.ink },
   noteT: { fontFamily: F.serifItalic, fontSize: 14, color: C.dim, marginTop: 2 },
 });
