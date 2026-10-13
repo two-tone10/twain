@@ -2,7 +2,7 @@
 -- Anonymous: the only id is a random per-install `device`, read only by these functions.
 -- Anon and authenticated get RPC access only; the tables are internal.
 
-create table if not exists public.star_events (
+create table if not exists public.keep_star_events (
   id bigint generated always as identity primary key,
   device uuid not null,
   mode text not null check (mode in ('drop','daily','drift','slow','challenge','pass')),
@@ -14,10 +14,10 @@ create table if not exists public.star_events (
   dwell real,
   created_at timestamptz not null default now()
 );
-create index if not exists star_events_day_idx on public.star_events (day) where day is not null;
-create index if not exists star_events_created_idx on public.star_events (created_at);
+create index if not exists keep_star_events_day_idx on public.keep_star_events (day) where day is not null;
+create index if not exists keep_star_events_created_idx on public.keep_star_events (created_at);
 
-create table if not exists public.submissions (
+create table if not exists public.keep_submissions (
   id bigint generated always as identity primary key,
   device uuid not null,
   t text not null check (char_length(t) between 3 and 30),
@@ -27,35 +27,35 @@ create table if not exists public.submissions (
   created_at timestamptz not null default now(),
   reviewed_at timestamptz
 );
-create index if not exists submissions_status_idx on public.submissions (status, created_at);
-create index if not exists submissions_device_idx on public.submissions (device, created_at);
-create index if not exists submissions_approved_idx on public.submissions (reviewed_at) where status = 'approved';
+create index if not exists keep_submissions_status_idx on public.keep_submissions (status, created_at);
+create index if not exists keep_submissions_device_idx on public.keep_submissions (device, created_at);
+create index if not exists keep_submissions_approved_idx on public.keep_submissions (reviewed_at) where status = 'approved';
 
 -- One row per log_round call, for the hourly rate limit.
-create table if not exists public.round_calls (
+create table if not exists public.keep_round_calls (
   device uuid not null,
   created_at timestamptz not null default now()
 );
-create index if not exists round_calls_device_idx on public.round_calls (device, created_at);
+create index if not exists keep_round_calls_device_idx on public.keep_round_calls (device, created_at);
 
 -- commons_board is computed at most every 15 minutes and served from here.
-create table if not exists public.board_cache (
+create table if not exists public.keep_board_cache (
   id int primary key default 1 check (id = 1),
   board jsonb not null,
   computed_at timestamptz not null
 );
 
-alter table public.star_events enable row level security;
-alter table public.submissions enable row level security;
-alter table public.round_calls enable row level security;
-alter table public.board_cache enable row level security;
-revoke all on public.star_events, public.submissions, public.round_calls, public.board_cache from public;
+alter table public.keep_star_events enable row level security;
+alter table public.keep_submissions enable row level security;
+alter table public.keep_round_calls enable row level security;
+alter table public.keep_board_cache enable row level security;
+revoke all on public.keep_star_events, public.keep_submissions, public.keep_round_calls, public.keep_board_cache from public;
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke all on public.star_events, public.submissions, public.round_calls, public.board_cache from anon, authenticated;
-    -- The moderation page (server-side, service role) reads and reviews submissions.
-    grant select, update on public.submissions to service_role;
-    grant select on public.star_events to service_role;
+    revoke all on public.keep_star_events, public.keep_submissions, public.keep_round_calls, public.keep_board_cache from anon, authenticated;
+    -- The moderation page (server-side, service role) reads and reviews keep_submissions.
+    grant select, update on public.keep_submissions to service_role;
+    grant select on public.keep_star_events to service_role;
   end if;
 end $$;
 
@@ -105,13 +105,13 @@ begin
     return;
   end if;
 
-  if (select count(*) from round_calls where device = v_device and created_at > now() - interval '1 hour') >= 60 then
+  if (select count(*) from keep_round_calls where device = v_device and created_at > now() - interval '1 hour') >= 60 then
     return;
   end if;
-  insert into round_calls (device) values (v_device);
-  delete from round_calls where created_at < now() - interval '2 hours' and random() < 0.05;
+  insert into keep_round_calls (device) values (v_device);
+  delete from keep_round_calls where created_at < now() - interval '2 hours' and random() < 0.05;
 
-  insert into star_events (device, mode, deck, day, t, k, kept, dwell)
+  insert into keep_star_events (device, mode, deck, day, t, k, kept, dwell)
   select v_device, v_mode, v_deck, v_day, btrim(s->>'t'), s->>'k', (s->>'kept')::boolean,
          case when jsonb_typeof(s->'dwell') = 'number' then (s->>'dwell')::real end
   from jsonb_array_elements(v_stars) s
@@ -127,7 +127,7 @@ returns table (t text, k text, kept_pct numeric, players int)
 language sql stable security definer set search_path = public as $$
   with ev as (
     select e.device, e.t, e.k, bool_or(e.kept) as kept
-    from star_events e
+    from keep_star_events e
     where e.day = p_day and e.mode in ('daily','challenge')
     group by e.device, e.t, e.k
   ),
@@ -144,12 +144,12 @@ create or replace function public.keep_compute_board() returns jsonb
 language sql stable security definer set search_path = public as $$
   with cur as (
     select t, k, count(*)::int as shown, 100.0 * avg(kept::int) as rate
-    from star_events where created_at >= now() - interval '7 days'
+    from keep_star_events where created_at >= now() - interval '7 days'
     group by t, k
   ),
   prev as (
     select t, k, count(*)::int as shown, 100.0 * avg(kept::int) as rate
-    from star_events where created_at >= now() - interval '14 days' and created_at < now() - interval '7 days'
+    from keep_star_events where created_at >= now() - interval '14 days' and created_at < now() - interval '7 days'
     group by t, k
   ),
   most as (
@@ -179,14 +179,14 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_board jsonb;
 begin
-  select board into v_board from board_cache where id = 1 and computed_at > now() - interval '15 minutes';
+  select board into v_board from keep_board_cache where id = 1 and computed_at > now() - interval '15 minutes';
   if v_board is not null then return v_board; end if;
   if not pg_try_advisory_xact_lock(hashtext('keep_commons_board')) then
-    select board into v_board from board_cache where id = 1;
+    select board into v_board from keep_board_cache where id = 1;
     return coalesce(v_board, keep_compute_board());
   end if;
   v_board := keep_compute_board();
-  insert into board_cache (id, board, computed_at) values (1, v_board, now())
+  insert into keep_board_cache (id, board, computed_at) values (1, v_board, now())
   on conflict (id) do update set board = excluded.board, computed_at = excluded.computed_at;
   return v_board;
 end $$;
@@ -221,11 +221,11 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'not_allowed');
   end if;
 
-  if (select count(*) from submissions where device = v_device and created_at > now() - interval '1 day') >= 5 then
+  if (select count(*) from keep_submissions where device = v_device and created_at > now() - interval '1 day') >= 5 then
     return jsonb_build_object('ok', false, 'reason', 'slow_down');
   end if;
 
-  insert into submissions (device, t, k, deck) values (v_device, v_t, v_k, v_deck);
+  insert into keep_submissions (device, t, k, deck) values (v_device, v_t, v_k, v_deck);
   return jsonb_build_object('ok', true, 'reason', null);
 end $$;
 
@@ -234,7 +234,7 @@ create or replace function public.community_moments(p_since timestamptz)
 returns table (t text, k text, approved_at timestamptz)
 language sql stable security definer set search_path = public as $$
   select s.t, s.k, s.reviewed_at as approved_at
-  from submissions s
+  from keep_submissions s
   where s.status = 'approved' and s.reviewed_at > coalesce(p_since, '-infinity'::timestamptz)
   order by s.reviewed_at desc
   limit 500

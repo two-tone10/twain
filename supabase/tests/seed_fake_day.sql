@@ -1,12 +1,12 @@
 -- Test data for the Keep commons: 100 fake devices.
 -- Run against the project's database (SQL editor or psql). Safe to re-run: it clears its own rows first.
--- Fake devices all start with 00000000-0000-4000-8000-, so `delete from star_events where device::text like '00000000-0000-4000-8000-%'` removes them.
+-- Fake devices all start with 00000000-0000-4000-8000-, so `delete from keep_star_events where device::text like '00000000-0000-4000-8000-%'` removes them.
 --
 -- Today (Keep day number, America/New_York): every device plays the daily (the same 21 stars), so daily_stats returns data.
 -- The 13 days before: each device plays one drop a day from 42 moments, with some moments trending up, so commons_board fills most, rare and rising.
 
-delete from public.star_events where device::text like '00000000-0000-4000-8000-%';
-delete from public.board_cache;
+delete from public.keep_star_events where device::text like '00000000-0000-4000-8000-%';
+delete from public.keep_board_cache;
 
 with moments(i, t, k) as (values
     (0, 'A cannonball into a pool', 'delight'),
@@ -58,7 +58,7 @@ devices as (
 today as (select ((now() at time zone 'America/New_York')::date - date '2026-10-01') + 1 as day),
 -- Each moment has a base keep rate; odd ones rise over the fortnight, even ones fall a little.
 rate as (select i, t, k, 0.12 + (i * 37 % 70) / 100.0 as base, case when i % 2 = 1 then 0.025 else -0.008 end as trend from moments)
-insert into public.star_events (device, mode, deck, day, t, k, kept, dwell, created_at)
+insert into public.keep_star_events (device, mode, deck, day, t, k, kept, dwell, created_at)
 select d.device, 'daily', 'everyday', today.day, r.t, r.k,
        random() < least(0.95, greatest(0.03, r.base + r.trend * 13)),
        round((0.6 + random() * 2.4)::numeric, 2)::real,
@@ -74,5 +74,5 @@ from devices d
 cross join generate_series(1, 13) as g(ago)
 join rate r on (r.i + d.n + g.ago) % 2 = 0;
 
-select (select count(distinct device) from public.star_events where device::text like '00000000-0000-4000-8000-%') as fake_devices,
-       (select count(*) from public.star_events where device::text like '00000000-0000-4000-8000-%') as fake_events;
+select (select count(distinct device) from public.keep_star_events where device::text like '00000000-0000-4000-8000-%') as fake_devices,
+       (select count(*) from public.keep_star_events where device::text like '00000000-0000-4000-8000-%') as fake_events;
