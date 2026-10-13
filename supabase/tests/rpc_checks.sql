@@ -1,0 +1,43 @@
+-- Smoke checks for the Keep commons RPCs. Run after seed_fake_day.sql; each line should say ok.
+set role anon;
+select case when (select count(*) from daily_stats(((now() at time zone 'America/New_York')::date - date '2026-10-01') + 1)) = 21 then 'ok daily_stats 21 rows' else 'FAIL daily_stats' end;
+select case when (select max(players) from daily_stats(((now() at time zone 'America/New_York')::date - date '2026-10-01') + 1)) = 100 then 'ok daily_stats players 100' else 'FAIL players' end;
+select case when (select count(*) from daily_stats(-5)) = 0 then 'ok daily_stats empty day' else 'FAIL empty day' end;
+select case when jsonb_array_length(b->'most') = 10 and jsonb_array_length(b->'rare') = 10 and jsonb_array_length(b->'rising') > 0 then 'ok commons_board ' || jsonb_array_length(b->'rising') || ' rising' else 'FAIL board ' || b::text end from (select commons_board() b) x;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"  A long walk home ","k":"setting","deck":"everyday"}')->>'ok' = 'true' then 'ok submit' else 'FAIL submit' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"ab","k":"setting"}')->>'reason' = 'too_short' then 'ok too_short' else 'FAIL too_short' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"a moment that is far too long to fit","k":"setting"}')->>'reason' = 'too_long' then 'ok too_long' else 'FAIL too_long' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"visit example.com now","k":"setting"}')->>'reason' = 'not_allowed' then 'ok url' else 'FAIL url' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"follow @someone","k":"setting"}')->>'reason' = 'not_allowed' then 'ok handle' else 'FAIL handle' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"this is shit","k":"setting"}')->>'reason' = 'not_allowed' then 'ok profanity' else 'FAIL profanity' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"Scunthorpe sunsets","k":"setting"}')->>'ok' = 'true' then 'ok no false positive' else 'FAIL false positive' end;
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"Fine","k":"ranking"}')->>'reason' = 'not_allowed' then 'ok bad why' else 'FAIL bad why' end;
+select submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"Third one","k":"taste"}');
+select submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"Fourth one","k":"taste"}');
+select submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"Fifth one","k":"taste"}');
+select case when submit_star('{"device":"11111111-1111-4111-8111-111111111111","t":"Sixth one","k":"taste"}')->>'reason' = 'slow_down' then 'ok slow_down' else 'FAIL slow_down' end;
+select case when (select count(*) from community_moments('1970-01-01')) = 0 then 'ok nothing shown before approval' else 'FAIL shown early' end;
+select log_round('{"device":"22222222-2222-4222-8222-222222222222","mode":"drift","deck":"city","day":null,"stars":[{"t":"New coffee shop","k":"novelty","kept":true,"dwell":1.2},{"t":"x","k":"bogus","kept":true}]}');
+select log_round('{"device":"not-a-uuid","mode":"drift","deck":"city","stars":[{"t":"New coffee shop","k":"novelty","kept":true}]}');
+select log_round('"garbage"');
+select log_round(null);
+do $$ begin for i in 1..70 loop perform log_round('{"device":"33333333-3333-4333-8333-333333333333","mode":"drop","deck":"everyday","day":12,"stars":[{"t":"Rate me","k":"delight","kept":false}]}'); end loop; end $$;
+reset role;
+select case when (select count(*) from star_events where device = '22222222-2222-4222-8222-222222222222') = 1 then 'ok log_round keeps valid stars only' else 'FAIL log_round' end;
+select case when (select count(*) from star_events where device = '33333333-3333-4333-8333-333333333333') = 60 then 'ok log_round rate limit 60/h' else 'FAIL rate limit' end;
+select case when (select t from submissions where t like 'A long%') = 'A long walk home' then 'ok trimmed' else 'FAIL trim' end;
+update submissions set status = 'approved', reviewed_at = now() where t = 'A long walk home';
+set role anon;
+select case when (select count(*) from community_moments('1970-01-01')) = 1 then 'ok approved shows' else 'FAIL approved' end;
+select case when (select count(*) from community_moments(now() + interval '1 minute')) = 0 then 'ok since filter' else 'FAIL since' end;
+reset role;
+-- Anon must not reach the tables directly.
+do $$ begin
+  set local role anon;
+  begin perform 1 from star_events limit 1; raise notice 'FAIL anon read star_events'; exception when insufficient_privilege then raise notice 'ok anon blocked from star_events'; end;
+  begin perform 1 from submissions limit 1; raise notice 'FAIL anon read submissions'; exception when insufficient_privilege then raise notice 'ok anon blocked from submissions'; end;
+  begin perform keep_compute_board(); raise notice 'FAIL anon ran keep_compute_board'; exception when insufficient_privilege then raise notice 'ok anon blocked from internals'; end;
+end $$;
+delete from submissions where device = '11111111-1111-4111-8111-111111111111';
+delete from star_events where device in ('22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333');
+delete from round_calls where device in ('22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333');
