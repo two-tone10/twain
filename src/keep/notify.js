@@ -53,3 +53,20 @@ export async function scheduleEvening(list, on) {
     });
   } catch {}
 }
+
+// "Today's drop is ready" at `hour` for the next week, skipping today if it's done or the hour has passed.
+export async function scheduleDailyDrop(hour, doneToday) {
+  try {
+    await clear('dailydrop');
+    if (hour == null) return;
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hour, 0, 0);
+      if (d.getTime() < Date.now() + 60e3 || (i === 0 && doneToday)) continue;
+      await Notifications.scheduleNotificationAsync({
+        content: { title: 'Keep', body: 'Today’s drop is ready.', data: { kind: 'dailydrop' } },
+        trigger: at(d),
+      });
+    }
+  } catch {}
+}

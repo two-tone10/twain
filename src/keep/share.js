@@ -79,6 +79,17 @@ const CARDS = {
     });
     if (sign) text(c, `${sign}, lately`, 22, 220, f.italic, C.gold);
   },
+  // The week: how many skies, what you did, and the names you drew.
+  week: (c, f, { rounds, done, glad, names, sign }) => {
+    frame(c, f, 'My week');
+    [[rounds, rounds === 1 ? 'sky' : 'skies'], [done, 'done'], [glad, 'glad']].forEach(([n, l], i) => {
+      const x = 22 + i * 110;
+      text(c, String(n), x, 120, f.huge);
+      drawCaps(c, l, x + 2, 142, f.caps, C.faint, 1, 'left', 1.6);
+    });
+    names.slice(0, 4).forEach((n, i) => text(c, n, 22, 200 + i * 34, f.title, i ? C.dim : C.ink));
+    if (sign) text(c, `${sign}, lately`, 22, PH - 60, f.italic, C.gold);
+  },
   // Pass it around: everyone's constellation in one sky.
   family: (c, f, { players, line }) => {
     frame(c, f, 'Our sky');

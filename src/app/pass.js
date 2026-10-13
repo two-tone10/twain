@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
-import { DECK, DECKS, WHY } from '../keep/content.mjs';
+import { DECK, DECKS, deckReady, WHY } from '../keep/content.mjs';
 import { skyPoint } from '../keep/insight.mjs';
 import { WHENS, askAtFor, followUp } from '../keep/plans.mjs';
 import { tableSummary } from '../keep/table.mjs';
@@ -60,8 +60,9 @@ export default function Pass() {
 function Setup({ players, setPlayers, onStart }) {
   const set = (i, patch) => setPlayers((ps) => ps.map((p, j) => (j === i ? { ...p, ...patch } : p)));
   const cycleDeck = (i) => {
-    const at = DECKS.findIndex((d) => d.key === players[i].deck);
-    set(i, { deck: DECKS[(at + 1) % DECKS.length].key });
+    const ready = DECKS.filter((d) => deckReady(d.key));
+    const at = ready.findIndex((d) => d.key === players[i].deck);
+    set(i, { deck: ready[(at + 1) % ready.length].key });
     Haptics.selectionAsync();
   };
   return (

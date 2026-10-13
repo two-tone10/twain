@@ -106,3 +106,19 @@ export const PLAY_URL = 'https://lipurposefe.com/keep/play';
 export function shareText({ day, kept, speed, who }) {
   return [`Keep #${day} ✦ ${skyName(kept)}`, `${emojiLine(kept)}  ${fmtSpeed(speed)}`, `Catch the same stars: ${PLAY_URL}?${encodeChallenge(day, who, kept, speed)}`].join('\n');
 }
+
+// After the daily: how your five compare with everyone's. Rare is a compliment.
+export function rarity(kept, stats) {
+  if (!stats?.length || !kept.length) return null;
+  const pct = Object.fromEntries(stats.map((x) => [x.t, x.kept_pct]));
+  const mine = kept.filter((m) => pct[m.t] != null).map((m) => ({ t: m.t, pct: pct[m.t] }));
+  if (!mine.length) return null;
+  const lo = mine.reduce((a, b) => (b.pct < a.pct ? b : a));
+  const hi = mine.reduce((a, b) => (b.pct > a.pct ? b : a));
+  const lines = [];
+  if (hi.t !== lo.t) lines.push([`${Math.round(hi.pct)}% of players kept `, { em: hi.t.toLowerCase() }, ' too.']);
+  lines.push(lo.pct <= 15
+    ? ['Only ', { em: `${Math.round(lo.pct)}%` }, ' kept ', { em: lo.t.toLowerCase() }, '. You’re one of the few.']
+    : [`${Math.round(lo.pct)}% kept `, { em: lo.t.toLowerCase() }, '.']);
+  return { lines, players: stats[0]?.players ?? null };
+}

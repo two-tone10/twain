@@ -46,6 +46,29 @@ export function timeline(list, now = Date.now(), weeks = null) {
   };
 }
 
+// Your why mix over time: by month once there are two months, before that in groups of five rounds.
+export function mixColumns(rounds, size = 5) {
+  const byMonth = monthlyMix(rounds);
+  if (byMonth.length >= 2) return byMonth.map((m) => ({ ...m, label: null }));
+  const played = rounds.filter((r) => r.kept?.length);
+  const cols = [];
+  for (let i = 0; i + size <= played.length; i += size) {
+    const mix = Object.fromEntries(WHYS.map((w) => [w.key, 0]));
+    for (const r of played.slice(i, i + size)) for (const k of r.kept) mix[k]++;
+    cols.push({ key: null, label: `${i + 1}–${i + size}`, mix });
+  }
+  return cols.length >= 2 ? cols : [];
+}
+
+// This week (Monday on): the skies you drew, things you did, and how many you were glad about.
+export function thisWeek({ rounds = [], list = [] }, now = Date.now()) {
+  const d = new Date(now);
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)).getTime();
+  const wr = rounds.filter((r) => r.at >= start && r.kept?.length);
+  const did = list.filter((it) => didIt(it) && doneAt(it) >= start);
+  return { start, rounds: wr.length, skies: wr.map((r) => r.items ?? r.kept.map((k) => ({ k, t: k }))), done: did.length, glad: did.filter((it) => it.glad === true).length };
+}
+
 // Your why mix month by month, from what you kept in drops. Needs two months to say anything.
 export function monthlyMix(rounds) {
   const months = {};

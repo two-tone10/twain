@@ -11,7 +11,10 @@
       "bundleIdentifier": "com.lipurposefe.keep",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "associatedDomains": [
+        "applinks:lipurposefe.com"
+      ]
     },
     "android": {
       "adaptiveIcon": {

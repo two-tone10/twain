@@ -13,7 +13,7 @@ import {
   ease, layout, lerp, record, starfield, useLoop, useSkyFonts, wrap,
 } from './sky';
 import { goHome } from './ui';
-import { deckNow } from '../lib/prefs';
+import { calmNow, deckNow } from '../lib/prefs';
 import { C } from '../lib/theme';
 
 /* ---------------- the drop ---------------- */
@@ -35,8 +35,10 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
   // Mutable game state lives in a ref and is only touched from the loop and touch handlers.
   const G = useRef(null);
   const game = () => (G.current ??= {
+    deckKey: cards ? 'everyday' : deck ?? deckNow(),
     deck: cards ? cards.map((c) => ({ ...c })) : deal(SOLO_PER_WHY, rng, deck ?? deckNow()),
     live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], pops: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H),
+    calm: calmNow() ? 1.5 : 1,
     cometAt: rng() < 0.8 ? roundMs * (0.25 + rng() * 0.5) : null, combo: 0, bestCombo: 0, lastCatch: -1e9, comets: 0,
   });
   useEffect(() => { loadSounds(); }, []);
@@ -53,10 +55,10 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
     if (comet) {
       // A comet crosses the sky on a diagonal in under two seconds.
       const fromLeft = rng() < 0.5;
-      g.live.push({ ...c, comet: true, lines, mw, pad, x: fromLeft ? pad : W - pad, vx: (fromLeft ? 1 : -1) * W * 0.42, born: g.gt, dur: 1900, trail: [], y: geo.top });
+      g.live.push({ ...c, comet: true, lines, mw, pad, x: fromLeft ? pad : W - pad, vx: ((fromLeft ? 1 : -1) * W * 0.42) / g.calm, born: g.gt, dur: 1900 * g.calm, trail: [], y: geo.top });
       return;
     }
-    g.live.push({ ...c, lines, mw, pad, x: pad + rng() * (W - 2 * pad), vx: (rng() - 0.5) * 50, born: g.gt, dur: 6200 - 2800 * p, trail: [], y: geo.top });
+    g.live.push({ ...c, lines, mw, pad, x: pad + rng() * (W - 2 * pad), vx: (rng() - 0.5) * 50, born: g.gt, dur: (6200 - 2800 * p) * g.calm, trail: [], y: geo.top });
   };
 
   // Catches within COMBO_MS of each other build a combo; the chime climbs with it.
@@ -147,7 +149,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
     g.gt += dt * g.scale;
     const p = Math.min(1, g.gt / roundMs);
     if (g.cometAt != null && g.gt >= g.cometAt && g.deck.length) { g.cometAt = null; spawn(true); }
-    if (g.gt >= g.next && g.deck.length) { spawn(); g.next = g.gt + 1500 - 750 * p; }
+    if (g.gt >= g.next && g.deck.length) { spawn(); g.next = g.gt + (1500 - 750 * p) * (g.calm > 1 ? 1.3 : 1); }
     for (const m of g.live.slice()) {
       const f = (g.gt - m.born) / m.dur;
       m.y = geo.top - 10 + f * (geo.fadeY - geo.top + 30);

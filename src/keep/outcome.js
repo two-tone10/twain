@@ -14,7 +14,8 @@ import { drawConstellation, layout, record, useSkyFonts } from './sky';
 import { Button, Eyebrow, goHome, Reading, StillSky } from './ui';
 import { addToList, loadMyName, loadRounds, saveMyName } from '../lib/storage';
 import { shareCard } from './share';
-import { fmtSpeed, shareText, skyLine, skyName } from './fun.mjs';
+import { fmtSpeed, rarity, shareText, skyLine, skyName } from './fun.mjs';
+import { dailyStats } from '../lib/commons';
 import { loadPeople, savePeople } from '../lib/prefs';
 import { C, F, R, S } from '../lib/theme';
 
@@ -157,6 +158,8 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
   const [played, setPlayed] = useState(null);
   const [why, setWhy] = useState(false);
   const [me, setMe] = useState(null);
+  const [rare, setRare] = useState(null);
+  useEffect(() => { if (g.day) dailyStats(g.day).then((st) => setRare(rarity(g.kept, st))); }, [g.day, g.kept]);
   useEffect(() => { loadRounds().then((r) => setPlayed(r.filter((x) => x.items?.length).length)); loadMyName().then(setMe); }, []);
 
   const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null }).slice(0, 3);
@@ -206,6 +209,7 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
       ) : (
         <Text style={[styles.name, { textAlign: 'center' }]}>Every star got away.</Text>
       )}
+      {rare && <View style={{ gap: 6 }}>{rare.lines.map((l, i) => <Reading key={i} line={l} style={styles.rare} />)}</View>}
       {lines.length > 0 && (
         <Pressable accessibilityRole="button" onPress={() => setWhy((w) => !w)} style={{ alignItems: 'center' }}>
           <Text style={styles.share}>{why ? 'Less' : 'Why this sky ›'}</Text>
@@ -213,8 +217,11 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
       )}
       {why && <View style={{ gap: 10 }}>{lines.map((l, i) => <Reading key={i} line={l} />)}</View>}
       {played != null && played < PATTERN_ROUNDS && (
-        <View style={[styles.slots, { alignSelf: 'center' }]}>
-          {Array.from({ length: PATTERN_ROUNDS }, (_, i) => <View key={i} style={[styles.slot, i < played && styles.slotOn]} />)}
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <View style={styles.slots}>
+            {Array.from({ length: PATTERN_ROUNDS }, (_, i) => <View key={i} style={[styles.slot, i < played && styles.slotOn]} />)}
+          </View>
+          <Text style={styles.hook}>{PATTERN_ROUNDS - played} more {PATTERN_ROUNDS - played === 1 ? 'drop' : 'drops'} to find your sign</Text>
         </View>
       )}
       {g.day && me != null && !me && (
@@ -333,6 +340,8 @@ const styles = StyleSheet.create({
   plan: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
   planWhen: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
   planText: { fontFamily: F.serifRegular, fontSize: 26, lineHeight: 31, color: C.ink },
+  rare: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
+  hook: { fontFamily: F.sansMedium, fontSize: 12, letterSpacing: 1.5, color: C.gold },
   score: { flexDirection: 'row', justifyContent: 'space-between' },
   scoreT: { fontFamily: F.sansMedium, fontSize: 11, letterSpacing: 2.5, color: C.gold },
   best: { alignSelf: 'flex-start', fontFamily: F.sansBold, fontSize: 10, letterSpacing: 2, color: C.dark, backgroundColor: C.glow, borderRadius: R.full, overflow: 'hidden', paddingVertical: 3, paddingHorizontal: 10 },

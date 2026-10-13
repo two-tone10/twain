@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ALL_NAMES, dailyDeal, dayNumber, decodeChallenge, emojiLine, encodeChallenge, overlap, shareText, signFor, skyLine, skyName, speedOf } from './fun.mjs';
+import { rarity, ALL_NAMES, dailyDeal, dayNumber, decodeChallenge, emojiLine, encodeChallenge, overlap, shareText, signFor, skyLine, skyName, speedOf } from './fun.mjs';
 
 const m = (t, k) => ({ t, k });
 
@@ -41,4 +41,12 @@ test('challenges round-trip through a link', () => {
   assert.equal(emojiLine([m('a', 'company'), m('b', 'novelty')]), '🧡🩵');
   assert.equal(speedOf([{ born: 0, tapped: 400 }, { born: 0, tapped: 600 }]), 0.5);
   assert.match(shareText({ day: 12, kept, speed: 0.41, who: 'Maya' }), /^Keep #12 ✦ The .+\n.+0\.41s\nCatch the same stars: https:\/\/lipurposefe\.com\/keep\/play\?d=12&n=Maya&k=3\.7\.15&w=\d{3}&s=0\.41$/);
+});
+
+test('rarity reads the daily stats kindly', () => {
+  const kept = [{ t: 'Game night' }, { t: 'The symphony' }];
+  const r = rarity(kept, [{ t: 'Game night', kept_pct: 41.2, players: 300 }, { t: 'The symphony', kept_pct: 3.1, players: 300 }]);
+  const txt = r.lines.map((l) => l.map((x) => (typeof x === 'string' ? x : x.em)).join(''));
+  assert.deepEqual(txt, ['41% of players kept game night too.', 'Only 3% kept the symphony. You’re one of the few.']);
+  assert.equal(rarity(kept, []), null);
 });

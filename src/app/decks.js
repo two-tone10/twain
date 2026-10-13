@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { DECKS, WHYS, poolFor } from '../keep/content.mjs';
+import { DECKS, deckReady, WHYS, poolFor } from '../keep/content.mjs';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
 import { deckNow, setDeck } from '../lib/prefs';
 import { C, F, R, S } from '../lib/theme';
@@ -21,7 +21,7 @@ export default function Decks() {
           <Eyebrow>Your sky</Eyebrow>
           <Text style={styles.h2}>Which moments should fall?</Text>
           <View style={{ gap: 8 }}>
-            {DECKS.map((d) => {
+            {DECKS.filter((d) => deckReady(d.key)).map((d) => {
               const on = deck === d.key;
               return (
                 <Pressable key={d.key} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => choose(d.key)} style={[styles.deck, on && styles.deckOn]}>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { change, codex, holdsUp, monthlyMix, timeline, totals } from './kept.mjs';
+import { change, codex, holdsUp, mixColumns, monthlyMix, thisWeek, timeline, totals } from './kept.mjs';
 
 const d = (m, day) => new Date(2026, m, day, 12).getTime();
 const round = (at, kept) => ({ at, kept, items: kept.map((k, i) => ({ t: `${k}-${i}`, k, dwell: 0.3 })) });
@@ -50,4 +50,14 @@ test('holds up, and the codex by month', () => {
   const c = codex(list);
   assert.deepEqual(c.map((g) => [g.key, g.items.length]), [['2026-10', 3], ['2026-09', 1]]);
   assert.equal(c[0].items[0].t, 'Mentor someone');
+});
+
+test('bands fall back to groups of five rounds, and the week adds up', () => {
+  const rounds = Array.from({ length: 11 }, (_, i) => round(d(9, 10) + i * 1000, ['company', 'skill']));
+  const cols = mixColumns(rounds);
+  assert.deepEqual(cols.map((c) => c.label), ['1–5', '6–10']);
+  assert.equal(cols[0].mix.company, 5);
+  assert.deepEqual(mixColumns(rounds.slice(0, 9)), []);
+  const w = thisWeek({ rounds, list }, d(9, 10) + 864e5);
+  assert.equal(w.rounds, 11);
 });

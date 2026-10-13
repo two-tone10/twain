@@ -13,6 +13,7 @@ import { shareCard } from '../keep/share';
 import { drawConstellation, layout, record, useSkyFonts } from '../keep/sky';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
 import { loadDailies, loadMyName, saveDaily } from '../lib/storage';
+import { commonsOn } from '../lib/commons';
 import { C, F, R, S } from '../lib/theme';
 
 export default function Daily() {
@@ -23,7 +24,7 @@ export default function Daily() {
   useEffect(() => { loadDailies().then((d) => setSaved(d[day] ?? null)); }, [day]);
 
   const finished = async (g) => {
-    const extra = await recordRound(g, 'daily');
+    const extra = await recordRound(g, 'daily', day);
     await saveDaily(day, { kept: g.kept.map(({ t, k }) => ({ t, k })), speed: extra.speed, at: Date.now() });
     setGame({ ...g, ...extra, day });
   };
@@ -62,6 +63,7 @@ function DailyDone({ day, result }) {
           <View style={styles.dots}>{kept.map((m, i) => <View key={i} style={[styles.dot, { backgroundColor: WHY[m.k].color }]} />)}</View>
         </View>
         <Text style={styles.sub}>New stars tomorrow.</Text>
+        {commonsOn && <Button small ghost label="See everyone’s sky" onPress={() => router.push('/commons')} />}
         <View style={{ flex: 1 }} />
         {kept.length > 0 && <Button label="Send to a friend" onPress={send} />}
         <View style={{ flexDirection: 'row', gap: 10 }}>
