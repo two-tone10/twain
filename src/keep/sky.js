@@ -15,7 +15,9 @@ export function useSkyFonts() {
   const small = useFont(FILES.serif, 11);
   const italic = useFont(FILES.italic, 13);
   const caps = useFont(FILES.sans, 9);
-  return label && small && italic && caps ? { label, small, italic, caps } : null;
+  const title = useFont(FILES.serif, 28);
+  const huge = useFont(FILES.serif, 40);
+  return label && small && italic && caps && title && huge ? { label, small, italic, caps, title, huge } : null;
 }
 
 export const EMPTY = createPicture(() => {});
@@ -172,6 +174,40 @@ export function drawConstellation(c, items, pts, { font, alpha = 1, labels = tru
     const y = spots.find((sy) => !hits({ x: x - w / 2, y: sy, w, h: 13 })) ?? spots[0];
     placed.push({ x: x - w / 2, y, w, h: 13 });
     drawLines(c, [t], x, y, font, 13, alpha * 0.92);
+  });
+}
+
+// One person's constellation in their own color, for the family sky. Positions come from skyPoint
+// without spreading, so a moment two people kept lands on the same spot.
+const strokes = {};
+export function drawColored(c, pts, color, alpha = 0.85) {
+  const line = (strokes[color] ||= make(color, { stroke: 1.3 }));
+  pts.forEach((pt, i) => { if (i) c.drawLine(pts[i - 1].x, pts[i - 1].y, pt.x, pt.y, a(line, alpha * 0.8)); });
+  pts.forEach((pt) => { c.drawCircle(pt.x, pt.y, 5.5, a(tint(color), alpha * 0.35)); drawStar(c, pt.x, pt.y, 2.4, alpha); });
+}
+
+// A small colored star, with a gold ring when you were glad. Used in Kept's timeline.
+const rings = {};
+export function drawDot(c, x, y, color, glad = false, alpha = 1) {
+  c.drawCircle(x, y, 6, a(tint(color), alpha * 0.3));
+  drawStar(c, x, y, 2.2, alpha);
+  if (glad) c.drawCircle(x, y, 5.5, a((rings.gold ||= make(C.gold, { stroke: 1 })), alpha * 0.9));
+}
+
+// Stacked bands of color, one per why, across a row of columns (each a {why: count} mix).
+export function drawBands(c, cols, keys, colors, box) {
+  if (cols.length < 2) return;
+  const xs = cols.map((_, i) => box.x + (i / (cols.length - 1)) * box.w);
+  const tops = cols.map(() => box.y);
+  const totals = cols.map((m) => keys.reduce((n, k) => n + m[k], 0) || 1);
+  keys.forEach((k) => {
+    const y1 = cols.map((m, i) => tops[i] + (m[k] / totals[i]) * box.h);
+    const path = Skia.Path.Make();
+    xs.forEach((x, i) => (i ? path.lineTo(x, tops[i]) : path.moveTo(x, tops[i])));
+    for (let i = xs.length - 1; i >= 0; i--) path.lineTo(xs[i], y1[i]);
+    path.close();
+    c.drawPath(path, a(tint(colors[k]), 0.62));
+    y1.forEach((y, i) => (tops[i] = y));
   });
 }
 

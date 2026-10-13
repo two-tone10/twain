@@ -20,6 +20,7 @@ export const DECKS = [
   { key: 'city', name: 'New city', who: 'Just moved somewhere' },
   { key: 'kids', name: 'With kids', who: 'Parents, any age of kid' },
   { key: 'later', name: 'Next chapter', who: 'Retired, or nearly' },
+  { key: 'young', name: 'Young', who: 'Kids, about 7 to 13' },
 ];
 export const DECK = Object.fromEntries(DECKS.map((d) => [d.key, d]));
 

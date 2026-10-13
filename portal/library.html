@@ -64,6 +64,8 @@ select { font: 14px var(--sans); color: var(--ink); background: var(--panel); bo
 .item .acts { display: flex; gap: 2px; }
 .item .acts button { all: unset; cursor: pointer; font-size: 12px; color: var(--faint); padding: 4px 7px; border-radius: 6px; }
 .item .acts button:hover { color: var(--ink); background: var(--panel); }
+.item .acts select { font: 12px var(--sans); color: var(--faint); background: none; border: 1px solid transparent; border-radius: 6px; padding: 3px 4px; cursor: pointer; }
+.item .acts select:hover, .item .acts select:focus { color: var(--ink); border-color: var(--line); }
 .empty { padding: 28px 0; color: var(--faint); }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; background: var(--sky1); border: 1px solid var(--line); padding: 9px 16px; border-radius: 99px; font-size: 14px; }
 @media (max-width: 560px) {
@@ -120,7 +122,7 @@ const WHYS = [
   ['company', 'Company', '#f3b98a', 'Who’s there'], ['skill', 'Skill', '#a7c48a', 'Getting better'], ['taste', 'Taste', '#b79be0', 'Really good'],
   ['direction', 'Direction', '#7fb2f0', 'Where life’s heading'],
 ];
-const DECKS = [['everyday', 'Everyday'], ['campus', 'Campus'], ['city', 'New city'], ['kids', 'With kids'], ['later', 'Next chapter']];
+const DECKS = [['everyday', 'Everyday'], ['campus', 'Campus'], ['city', 'New city'], ['kids', 'With kids'], ['later', 'Next chapter'], ['young', 'Young']];
 const COL = Object.fromEntries(WHYS.map((w) => [w[0], w[2]]));
 const WN = Object.fromEntries(WHYS.map((w) => [w[0], w[1]]));
 const DN = Object.fromEntries(DECKS);
@@ -221,7 +223,7 @@ function render() {
       <span class="dot" style="background:${COL[m.k]}" title="${WN[m.k]}"></span>
       <span class="t">${esc(m.t)}</span>
       <span class="meta">${WN[m.k]} · ${DN[m.d]}${(m.at || 0) > shippedAt ? ' · <span class="newtag">new</span>' : ''}</span>
-      <span class="acts">${canWrite ? `<button data-a="edit">Edit</button><button data-a="why">Why</button><button data-a="off">${m.off ? 'Show' : 'Hide'}</button><button data-a="del">Delete</button>` : ''}</span>
+      <span class="acts">${canWrite ? `<button data-a="edit">Edit</button><select data-a="k" aria-label="Why for ${esc(m.t)}">${WHYS.map(([k, n]) => `<option value="${k}"${k === m.k ? ' selected' : ''}>${n}</option>`).join('')}</select><button data-a="off">${m.off ? 'Show' : 'Hide'}</button><button data-a="del">Delete</button>` : ''}</span>
     </div>`).join('') + (rows.length > 400 ? `<div class="empty">${rows.length - 400} more. Search or filter to narrow it.</div>` : '');
 }
 
@@ -230,7 +232,6 @@ $('list').addEventListener('click', async (e) => {
   const row = b.closest('.item'), id = row.dataset.id, m = byDeck[row.dataset.d].get(id), ref = db.doc('moments/' + id);
   try {
     if (b.dataset.a === 'off') await ref.update({ off: !m.off });
-    if (b.dataset.a === 'why') { const i = WHYS.findIndex((w) => w[0] === m.k); await ref.update({ k: WHYS[(i + 1) % 7][0] }); }
     if (b.dataset.a === 'del') {
       if (b.dataset.sure) { await ref.delete(); toast('Deleted.'); }
       else { b.dataset.sure = '1'; b.textContent = 'Sure?'; b.style.color = 'var(--warn)'; setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Delete'; b.style.color = ''; } }, 2500); }
@@ -248,6 +249,11 @@ $('list').addEventListener('click', async (e) => {
       t.onblur = () => editing === id && done(true);
     }
   } catch (err) { toast('Didn’t save. Try again.'); }
+});
+$('list').addEventListener('change', async (e) => {
+  const sel = e.target.closest('select[data-a="k"]'); if (!sel || !db) return;
+  const row = sel.closest('.item');
+  try { await db.doc('moments/' + row.dataset.id).update({ k: sel.value }); toast(`Now ${WN[sel.value]}.`); } catch (err) { toast('Didn’t save. Try again.'); }
 });
 ['q', 'fdeck', 'fwhy'].forEach((id) => $(id).addEventListener('input', render));
 

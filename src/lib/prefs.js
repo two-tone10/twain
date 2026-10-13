@@ -22,3 +22,7 @@ export const setOnboarded = () => save('keep:onboarded', true);
 // Opt-in "tonight's star" nudge at 6pm.
 export const loadEvening = () => load('keep:evening', false);
 export const saveEvening = (on) => save('keep:evening', on);
+
+// Names you've made plans with, most recent first.
+export const loadPeople = () => load('keep:people', []);
+export const savePeople = (names) => save('keep:people', names);

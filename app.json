@@ -2,7 +2,7 @@
   "expo": {
     "name": "Keep",
     "slug": "twain",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -42,9 +42,38 @@
           "backgroundColor": "#05060f"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-sharing",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.lipurposefe.keep.widgets",
+          "groupIdentifier": "group.com.lipurposefe.keep",
+          "widgets": [
+            {
+              "name": "TonightStar",
+              "displayName": "Tonight’s star",
+              "description": "One moment from your Keep list.",
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium",
+                "accessoryRectangular"
+              ],
+              "contentMarginsDisabled": false,
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryRectangular"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "expo-audio"
     ],
-    "scheme": "twain",
+    "scheme": "keep",
     "backgroundColor": "#05060f",
     "extra": {
       "router": {},

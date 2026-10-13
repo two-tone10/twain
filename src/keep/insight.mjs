@@ -109,6 +109,8 @@ export function spread(points, minDy = 0.24) {
 
 export const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 export const WEEK_MS = 7 * 864e5;
-export const activeList = (items, now = Date.now()) => items.filter((it) => it.at > now - WEEK_MS);
+// How long a list item stays: a week by default, a month for "someday", and always a couple of days past its check-in.
+export const untilFor = (it) => (it.when === 'someday' ? it.at + 30 * 864e5 : Math.max(it.at + WEEK_MS, (it.askAt ?? 0) + 2 * 864e5));
+export const activeList = (items, now = Date.now()) => items.filter((it) => untilFor(it) > now);
 
 export { BASKET };

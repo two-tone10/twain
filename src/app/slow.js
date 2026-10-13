@@ -12,7 +12,8 @@ import { allowReminders, scheduleReminders } from '../keep/notify';
 import { Outcome } from '../keep/outcome';
 import { EMPTY, drawCaps, drawConstellation, drawLines, drawSky, drawStar, layout, record, starfield, useLoop, useSkyFonts, wrap } from '../keep/sky';
 import { Button, Eyebrow, goHome, StillSky } from '../keep/ui';
-import { addRound, addSky, loadSlow, saveSlow } from '../lib/storage';
+import { loadSlow, saveSlow } from '../lib/storage';
+import { recordRound } from '../keep/records';
 import { C, F, S } from '../lib/theme';
 import { deckNow } from '../lib/prefs';
 
@@ -163,8 +164,7 @@ function Finished({ s, onRecorded, onNew }) {
   const [g] = useState(() => slowOutcome(s, Date.now()));
   useEffect(() => {
     if (s.recorded) return;
-    addRound(s.kept, 'slow');
-    if (s.kept.length) addSky(s.kept);
+    recordRound({ kept: s.kept }, 'slow');
     onRecorded({ ...s, recorded: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

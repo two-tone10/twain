@@ -6,14 +6,26 @@ Keep is a one-thumb game that shows you what you reach for. Every moment carries
 
 The repo is still named `twain` (the earlier card game lives in git history on `c7fcb65` and before). The app is **Keep**: bundle id `com.lipurposefe.keep`, App Store name "Keep: Catch a Falling Star", "Keep" under the icon.
 
+## The game layer
+
+- **Today's drop** (`/daily`): the same 21 stars for everyone each day (seeded by the day, Everyday deck, no server). One per day; afterward Home shows it done and offers to send it.
+- **Send a drop** (`/challenge`): a link (`https://lipurposefe.com/keep/play?d=&n=&k=&w=&s=`) carries the day, name, kept positions, whys and speed. The web page (lipurposefe repo, `keep/play.html`) shows the sky and opens `keep://challenge?...`; the app replays the same stars and compares.
+- **Comets and combos**: one rare comet per round streaks across fast; catches within 1.3s build a combo with rising chimes (`assets/sounds`, `src/keep/sound.js`). Scoring is speed only (average catch time, personal bests), never which moments.
+- **Named skies**: every round is named "The <adj> <noun>" from its two strongest whys (49 in all, collected in Kept). **Your sign** (Sky) is the why you grab fastest after five drops: Spark, Harbor, Comet, Hearth, Forge, Prism, Compass.
+- **Share cards** (`src/keep/share.js`): round, daily, sign, Kept totals, family sky. Drawn off screen with Skia and shared as PNG.
+- Logic in `src/keep/fun.mjs` (tested).
+
 ## Modes
 
 - **Drop** (45 seconds): moments fall and speed up. Keep five. Once full, tap a falling star to swap one out (time slows while you choose). Ends with a **final cut**: your fastest and slowest grab, six seconds to keep one.
 - **Drift**: ten stars, already yours, start fading one by one. Touch and hold to keep a star lit (multi-touch, so two thumbs can protect two). Reads what you protect, not what you grab.
 - **Slow drop**: one drop across a whole day. Fourteen moments over twelve hours, each taking about three hours to fall. Opt-in local reminders, never more than one every two hours. `/slow?quick=1` squeezes the day into about five minutes for testing.
+- **Pass it around** (2–6 players, one phone): each person plays a 30-second drop on their own deck and hands the phone on. Then one family sky (a color per person, shared stars glowing), what you share and who went their own way, and one thing to do together, which goes on the List.
 - **Duel**: two thumbs, one phone laid flat. Stars streak across the middle with labels printed both ways up. A late second tap on a just-taken star counts as a fight.
 
-After a solo round you can pick moments to **try today**. They wait on the List tab for a week; the next day Keep asks "Did you get to it?" and, if yes, "Glad you did?". An opt-in **Tonight's star** nudge at 6pm names the newest open moment.
+A solo round ends with **make one real**: a short reading (and how many rounds until your first pattern), then "Which of these could actually happen this week?", then two taps for when (tonight, this weekend, this week, someday) and with whom. The plan goes on the List with its day, and Keep asks how it went at the right time (next morning, Sunday evening, end of week; someday never asks). "Just playing today" is always a full answer.
+
+Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names tonight's plan or the newest open moment.
 
 **First launch** (`/welcome`): three slow stars instead of instructions, named the moment you tap one; then the one slow question (which two whys matter most to you?); then a deck.
 
@@ -24,7 +36,7 @@ After a solo round you can pick moments to **try today**. They wait on the List 
 
 **Your seven** (`/why/<key>`): tap any colored why anywhere for its page: what it means, your history with it, a few moments to try.
 
-**Decks**: Everyday, Campus, New city, With kids, Next chapter. Same seven whys, moments written for a life stage. Chosen on first launch or from the home screen.
+**Decks**: Everyday, Campus, New city, With kids, Next chapter, Young (kids about 7–13). Same seven whys, moments written for a life stage. Chosen on first launch or from the home screen.
 
 **Duel** ends with **read each other**: before the reveal, each player guesses the other's strongest why.
 
@@ -71,6 +83,9 @@ Each deck should have at least 4 moments per why; short ones borrow from Everyda
 
 - `src/keep/content.mjs`: the seven whys, decks, per-deck pools, round constants
 - `src/keep/library.mjs`: every moment (generated, see above)
+- `src/keep/plans.mjs`: when/with labels, check-in timing and wording for plans (pure, tested)
+- `src/keep/table.mjs`: Pass it around summary: shared moments, solo picks, what to do together (pure, tested)
+- `src/keep/field.js`: the falling field, shared by Drop and Pass it around
 - `src/keep/readings.mjs`: said vs grabbed, reach · do · glad, one why's stats, duel guesses, the evening nudge (pure, tested)
 - `src/keep/insight.mjs`: dealing, headlines, solo and duel readings, sky positions (pure, tested)
 - `src/keep/modes.mjs`: Drift, slow drop, reminders, list check-ins, Your sky readings (pure, tested)
@@ -78,7 +93,7 @@ Each deck should have at least 4 moments per why; short ones borrow from Everyda
 - `src/keep/outcome.js`: final cut and results, shared by Drop and the slow drop
 - `src/keep/notify.js`: opt-in local reminders (expo-notifications)
 - `src/keep/ui.js`: buttons, readings, why chips, the still sky behind screens
-- `src/app/`: Expo Router screens: `(tabs)/index` (Play), `(tabs)/sky`, `(tabs)/list`, `play` (Drop), `drift`, `slow`, `duel`, `welcome`, `decks`, `why/[k]`
+- `src/app/`: Expo Router screens: `(tabs)/index` (Play), `(tabs)/sky`, `(tabs)/list`, `play` (Drop), `drift`, `slow`, `duel`, `welcome`, `decks`, `why/[k]`, `pass`
 - `src/lib/prefs.js`: deck (also held in memory for dealing), the two whys you said, onboarding, the evening nudge
 - `portal/library.html`: source of the library portal artifact
 - `scripts/sync-library.mjs`: portal export to `library.mjs`
