@@ -110,7 +110,7 @@ export function shareText({ day, kept, speed, who }) {
 // After the daily: how your five compare with everyone's. Rare is a compliment.
 export function rarity(kept, stats) {
   if (!stats?.length || !kept.length) return null;
-  const pct = Object.fromEntries(stats.map((x) => [x.t, x.kept_pct]));
+  const pct = Object.fromEntries(stats.map((x) => [x.t, Number(x.kept_pct)]));
   const mine = kept.filter((m) => pct[m.t] != null).map((m) => ({ t: m.t, pct: pct[m.t] }));
   if (!mine.length) return null;
   const lo = mine.reduce((a, b) => (b.pct < a.pct ? b : a));

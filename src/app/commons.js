@@ -28,6 +28,7 @@ export default function Commons() {
           {!commonsOn && <Text style={styles.empty}>Opening soon. Your rounds stay on your phone until then.</Text>}
           {commonsOn && board === undefined && <Text style={styles.empty}>Looking up…</Text>}
           {commonsOn && board === null && <Text style={styles.empty}>Couldn’t reach the commons. Try again in a bit.</Text>}
+          {board && !SECTIONS.some(([key]) => board[key]?.length) && <Text style={styles.empty}>The board fills in as people play. Check back in a few days.</Text>}
           {board && SECTIONS.map(([key, title, sub]) => (board[key]?.length ? (
             <View key={key} style={styles.block}>
               <Eyebrow>{title}</Eyebrow>
@@ -37,9 +38,9 @@ export default function Commons() {
                   <View style={[styles.dot, { backgroundColor: WHY[m.k]?.color ?? C.gold }]} />
                   <View style={{ flex: 1, gap: 4 }}>
                     <Text style={styles.t}>{m.t}</Text>
-                    <View style={styles.track}><View style={[styles.bar, { width: `${Math.max(2, Math.min(100, m.pct))}%`, backgroundColor: WHY[m.k]?.color ?? C.gold }]} /></View>
+                    <View style={styles.track}><View style={[styles.bar, { width: `${Math.max(2, Math.min(100, Number(m.pct)))}%`, backgroundColor: WHY[m.k]?.color ?? C.gold }]} /></View>
                   </View>
-                  <Text style={styles.pct}>{Math.round(m.pct)}%</Text>
+                  <Text style={styles.pct}>{Math.round(Number(m.pct))}%</Text>
                 </View>
               ))}
             </View>

@@ -41,3 +41,7 @@ yarn-error.*
 /android
 
 .env
+
+# Supabase database password for the keep project (local only)
+supabase/.db-password
+supabase/.temp

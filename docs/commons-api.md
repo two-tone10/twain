@@ -1,6 +1,6 @@
 # Keep commons: backend contract
 
-The app (owned by Claude, `src/`) and the backend (owned by Devin, `supabase/`) meet here. Change this file by PR so both sides see it.
+The app (`src/`) and the backend (`supabase/`) meet here. Change this file by PR so both sides see it.
 
 ## Principles
 
@@ -11,7 +11,7 @@ The app (owned by Claude, `src/`) and the backend (owned by Devin, `supabase/`) 
 
 ## Supabase
 
-Project: the LiPurposeFe Supabase project (or a new one; Devin's call). The app reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (EAS environment `production`). Everything goes through Postgres RPCs over the REST API (`POST /rest/v1/rpc/<name>` with the anon key). The anon role gets no direct table access; RPCs are `security definer`.
+Project: Supabase `keep` (ref `rmvgbonpbqrwctyrwqob`, us-east-1). Schema and functions: `supabase/migrations/`; deploy with `supabase db push -p "$(cat supabase/.db-password)"` (the password file is local and gitignored). The app reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (EAS environment `production`). Everything goes through Postgres RPCs over the REST API (`POST /rest/v1/rpc/<name>` with the anon key). The anon role gets no direct table access; RPCs are `security definer`.
 
 Why keys are `delight | setting | novelty | company | skill | taste | direction`. Deck keys are `everyday | campus | city | kids | later | young | community`. Day = Keep's daily number (`1` = 2026-10-01 local), an integer.
 
@@ -41,6 +41,9 @@ Each item `{ t, k, pct, shown }`, cached or materialized and refreshed about eve
 Approved submissions since `p_since`, newest first, ≤ 500. The app caches them and deals them as the `community` deck, and now and then as a daily star.
 
 ## Moderation
+
+Service-role-only RPCs: `keep_admin_list(p_status text default 'pending')` and `keep_admin_review(p_id bigint, p_status text)` (`approved | rejected`).
+
 
 A password-protected page at `lipurposefe.com/keep/admin` (same Basic-auth middleware pattern as `/invariably/dashboard`) lists `pending` submissions with Approve / Reject, plus the 7-day board for a glance. Approving can also mean "promote to library": the owner adds the moment to the library portal by hand.
 
