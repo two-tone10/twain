@@ -21,13 +21,19 @@ export const DECKS = [
   { key: 'kids', name: 'With kids', who: 'Parents, any age of kid' },
   { key: 'later', name: 'Next chapter', who: 'Retired, or nearly' },
   { key: 'young', name: 'Young', who: 'Kids, about 7 to 13' },
+  { key: 'community', name: 'Community', who: 'Stars other players added' },
 ];
 export const DECK = Object.fromEntries(DECKS.map((d) => [d.key, d]));
+
+// Stars from the commons, added at runtime (see lib/commons.js). Never part of the daily.
+export const EXTRA = [];
+export const setExtra = (items) => { EXTRA.length = 0; EXTRA.push(...items); };
+export const deckReady = (key) => key !== 'community' || EXTRA.length >= 14;
 
 // Texts by why for one deck. A deck that's short on a why borrows from Everyday so rounds stay even.
 export function poolFor(deck = 'everyday', min = 4) {
   const by = Object.fromEntries(WHYS.map((w) => [w.key, []]));
-  for (const m of LIBRARY) if (m.d === deck) by[m.k].push(m.t);
+  for (const m of [...LIBRARY, ...EXTRA]) if (m.d === deck && by[m.k]) by[m.k].push(m.t);
   if (deck !== 'everyday') {
     for (const m of LIBRARY) if (m.d === 'everyday' && by[m.k].length < min && !by[m.k].includes(m.t)) by[m.k].push(m.t);
   }

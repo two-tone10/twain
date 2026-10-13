@@ -25,7 +25,7 @@ export default function Challenge() {
   if (mine === undefined) return <View style={styles.root} />;
 
   const finished = async (g) => {
-    const extra = await recordRound(g, 'challenge');
+    const extra = await recordRound(g, 'challenge', c.day);
     const result = { kept: g.kept.map(({ t, k }) => ({ t, k })), speed: extra.speed, at: Date.now() };
     if (c.day === dayNumber()) await saveDaily(c.day, result);
     setMine(result);

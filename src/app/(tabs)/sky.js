@@ -1,7 +1,7 @@
 // Sky: your sign up top, reach · do · glad as three words, then every constellation you've drawn.
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
@@ -15,6 +15,7 @@ import { drawColored, drawConstellation, layout, record, useSkyFonts } from '../
 import { Button, Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
 import { addToList, loadHolds, loadList, loadRounds, loadSkies } from '../../lib/storage';
 import { deckNow, loadSaid } from '../../lib/prefs';
+import { commonsOn } from '../../lib/commons';
 import { C, F, R, S } from '../../lib/theme';
 
 export default function Sky() {
@@ -107,6 +108,11 @@ export default function Sky() {
             </View>
           )}
 
+          {commonsOn && <Pressable accessibilityRole="button" onPress={() => router.push('/commons')} style={styles.commons}>
+            <Text style={styles.commonsT}>Everyone’s sky ›</Text>
+            <Text style={styles.note}>What the commons keeps, and what almost nobody catches.</Text>
+          </Pressable>}
+
           <View style={styles.block}>
             <Eyebrow>Every sky · {data.skies.length}</Eyebrow>
             {chart && (
@@ -153,6 +159,8 @@ const styles = StyleSheet.create({
   trioWhy: { fontFamily: F.serif, fontSize: 18 },
   trioEmpty: { fontFamily: F.serif, fontSize: 18, color: C.faint },
   note: { fontFamily: F.sans, fontSize: 13, color: C.faint, textAlign: 'center' },
+  commons: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  commonsT: { fontFamily: F.serif, fontSize: 19, color: C.gold },
   block: { gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   tally: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tallyItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: R.full, borderWidth: 1, borderColor: C.line },

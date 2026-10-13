@@ -2,9 +2,10 @@ import { useCallback, useState } from 'react';
 import { Tabs, useFocusEffect } from 'expo-router';
 import { TabBar } from '../../keep/TabBar';
 import { dueCheckIns } from '../../keep/modes.mjs';
-import { loadList } from '../../lib/storage';
-import { loadEvening } from '../../lib/prefs';
-import { scheduleEvening } from '../../keep/notify';
+import { loadDailies, loadList } from '../../lib/storage';
+import { loadDailyHour, loadEvening } from '../../lib/prefs';
+import { dayNumber } from '../../keep/fun.mjs';
+import { scheduleDailyDrop, scheduleEvening } from '../../keep/notify';
 import { C } from '../../lib/theme';
 
 export default function TabsLayout() {
@@ -15,6 +16,9 @@ export default function TabsLayout() {
     const [l, evening] = await Promise.all([loadList(), loadEvening()]);
     setDue(dueCheckIns(l, Date.now()).length > 0);
     if (evening) scheduleEvening(l, true);
+    // The daily reminder skips today once today's drop is played.
+    const [hour, dailies] = await Promise.all([loadDailyHour(), loadDailies()]);
+    if (hour != null) scheduleDailyDrop(hour, !!dailies[dayNumber()]);
   }, []);
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 

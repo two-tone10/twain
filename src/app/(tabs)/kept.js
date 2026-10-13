@@ -5,9 +5,9 @@ import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import { WHYS, WHY } from '../../keep/content.mjs';
-import { CHANGE_ROUNDS, change, codex, holdsUp, monthLabel, monthlyMix, timeline, totals } from '../../keep/kept.mjs';
+import { CHANGE_ROUNDS, change, codex, holdsUp, mixColumns, monthLabel, thisWeek, timeline, totals } from '../../keep/kept.mjs';
 import { withLabel } from '../../keep/plans.mjs';
-import { ALL_NAMES, signFor } from '../../keep/fun.mjs';
+import { ALL_NAMES, signFor, skyName } from '../../keep/fun.mjs';
 import { shareCard } from '../../keep/share';
 import { drawBands, drawCaps, drawDot, record, useSkyFonts } from '../../keep/sky';
 import { Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
@@ -46,7 +46,7 @@ export default function Kept() {
 
   const cw = W - 2 * S.lg;
   const tl = useMemo(() => (data ? timeline(data.list, data.now, weeks) : null), [data, weeks]);
-  const mix = useMemo(() => (data ? monthlyMix(data.rounds) : []), [data]);
+  const mix = useMemo(() => (data ? mixColumns(data.rounds) : []), [data]);
 
   const timePic = useMemo(() => {
     if (!fonts || !tl?.points.length) return null;
@@ -71,7 +71,7 @@ export default function Kept() {
       drawBands(c, mix.map((m) => m.mix), KEYS, COLORS, { x: 4, y: 4, w: cw - 8, h: H - 26 });
       mix.forEach((m, i) => {
         const x = 4 + (i / (mix.length - 1)) * (cw - 8);
-        const label = monthLabel(m.key, data.now).slice(0, 3);
+        const label = m.label ?? monthLabel(m.key, data.now).slice(0, 3);
         drawCaps(c, label, i === 0 ? x : i === mix.length - 1 ? x - 22 : x - 10, H - 6, fonts.caps, C.faint, 1, 'left', 1);
       });
     });
@@ -85,6 +85,9 @@ export default function Kept() {
   const since = t.since ? new Date(t.since).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
   const names = Object.entries(data.named).sort((a, b) => b[1].n - a[1].n);
   const sign = signFor(data.rounds);
+  const week = thisWeek(data, data.now);
+  const weekNames = [...new Set(week.skies.map((sk) => skyName(sk)).filter(Boolean))];
+  const shareWeek = () => fonts && shareCard('week', { rounds: week.rounds, done: week.done, glad: week.glad, names: weekNames, sign: sign.name }, fonts, `My week in Keep ✦ ${week.rounds} skies`).catch(() => {});
   const shareStats = () => fonts && shareCard('kept', { since, done: t.done, glad: t.glad, people: t.people, sign: sign.name }, fonts, `${t.done} things done, ${t.glad} I was glad about ✦ Keep`).catch(() => {});
 
   return (
@@ -109,6 +112,18 @@ export default function Kept() {
               </View>
             ))}
           </View>
+
+          {/* this week */}
+          {week.rounds > 0 && (
+            <Pressable accessibilityRole="button" onPress={shareWeek} style={styles.week}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.weekL}>THIS WEEK</Text>
+                <Text style={styles.weekT}>{week.rounds} {week.rounds === 1 ? 'sky' : 'skies'} · {week.done} done{week.glad ? ` · ${week.glad} glad` : ''}</Text>
+                {weekNames[0] ? <Text style={styles.weekN}>{weekNames.slice(0, 2).join(', ')}</Text> : null}
+              </View>
+              <Text style={styles.shareT}>↗</Text>
+            </Pressable>
+          )}
 
           {/* 1. the plot of you */}
           <View style={styles.block}>
@@ -251,6 +266,10 @@ const styles = StyleSheet.create({
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink, flex: 1 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   shareT: { fontFamily: F.sansMedium, fontSize: 22, color: C.gold },
+  week: { flexDirection: 'row', alignItems: 'center', padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  weekL: { fontFamily: F.sansMedium, fontSize: 9, letterSpacing: 2.5, color: C.gold },
+  weekT: { fontFamily: F.serif, fontSize: 18, color: C.ink },
+  weekN: { fontFamily: F.serifItalic, fontSize: 14, color: C.dim },
   skyN: { fontFamily: F.serifItalic, fontSize: 14, color: C.ink },
   big: { fontSize: 20, lineHeight: 28 },
   stats: { flexDirection: 'row', gap: 6 },

@@ -6,7 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import { useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { DECKS, WHYS, WHY, poolFor } from '../keep/content.mjs';
+import { DECKS, deckReady, WHYS, WHY, poolFor } from '../keep/content.mjs';
 import { EMPTY, drawLines, drawSky, drawStar, drawTrail, record, starfield, useLoop, useSkyFonts, wrap } from '../keep/sky';
 import { Button, Eyebrow, StillSky } from '../keep/ui';
 import { deckNow, saveSaid, setDeck, setOnboarded } from '../lib/prefs';
@@ -77,7 +77,7 @@ export default function Welcome() {
             <Text style={styles.h2}>Which moments should fall?</Text>
             <Text style={styles.sub}>Same seven whys in every deck. The moments fit where you are. You can change this anytime.</Text>
             <View style={{ gap: 8 }}>
-              {DECKS.map((d) => {
+              {DECKS.filter((d) => deckReady(d.key)).map((d) => {
                 const on = deck === d.key;
                 return (
                   <Pressable key={d.key} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => pickDeck(d.key)} style={[styles.deck, on && styles.deckOn]}>

@@ -97,8 +97,8 @@ export default function Play() {
               </Pressable>
             ))}
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Deck: ${DECK[deck].name}. Change`} onPress={() => router.push('/decks')} style={styles.alt}>
-            <Text style={styles.deckT}>{DECK[deck].name.toUpperCase()} DECK</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Settings. Deck: ${DECK[deck].name}`} onPress={() => router.push('/settings')} style={styles.alt}>
+            <Text style={styles.deckT}>{DECK[deck].name.toUpperCase()} DECK  ·  SETTINGS</Text>
           </Pressable>
         </View>
       </SafeAreaView>

@@ -1,6 +1,7 @@
 // Soft chimes for catches: a pentatonic step up with each combo, and a sparkle for a comet.
-// Respects the silent switch and mixes with whatever else is playing. Any failure stays silent.
-import { createAudioPlayer } from 'expo-audio';
+// Respects the silent switch and mixes with whatever else is playing. Any failure stays silent,
+// including builds made before the audio module was added (they simply play without chimes).
+import { requireOptionalNativeModule } from 'expo';
 
 const FILES = [
   require('../../assets/sounds/chime0.wav'),
@@ -16,6 +17,8 @@ let players = null;
 export function loadSounds() {
   if (players) return;
   try {
+    if (!requireOptionalNativeModule('ExpoAudio')) throw new Error('no audio in this build');
+    const { createAudioPlayer } = require('expo-audio');
     players = { chimes: FILES.map((f) => createAudioPlayer(f)), comet: createAudioPlayer(COMET) };
     for (const p of [...players.chimes, players.comet]) p.volume = 0.6;
   } catch { players = { chimes: [], comet: null }; }
