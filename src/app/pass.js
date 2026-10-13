@@ -9,6 +9,7 @@ import { DECK, DECKS, WHY } from '../keep/content.mjs';
 import { skyPoint } from '../keep/insight.mjs';
 import { WHENS, askAtFor, followUp } from '../keep/plans.mjs';
 import { tableSummary } from '../keep/table.mjs';
+import { shareCard } from '../keep/share';
 import { Field } from '../keep/field';
 import { drawColored, drawLines, drawStar, record, useSkyFonts } from '../keep/sky';
 import { Button, Eyebrow, Reading, StillSky, goHome } from '../keep/ui';
@@ -261,6 +262,7 @@ function Together({ players, onAgain, onSetup }) {
           <Text style={styles.h2}>The family sky was the point. See you next round.</Text>
         )}
         {legend}
+        {fonts && <Button small ghost label="Share our sky" onPress={() => shareCard('family', { players, line: s.lines[0].map((x) => (typeof x === 'string' ? x : x.em)).join('') }, fonts, 'Our sky ✦ Keep').catch(() => {})} />}
         <View style={{ flex: 1 }} />
         <Button label="Play again" onPress={onAgain} />
         <View style={{ flexDirection: 'row', gap: 10 }}>

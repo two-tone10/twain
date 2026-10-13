@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
@@ -6,6 +6,8 @@ import { useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BASKET, ROUND_MS, SOLO_PER_WHY } from './content.mjs';
 import { deal } from './insight.mjs';
+import { COMBO_MS } from './fun.mjs';
+import { chime, cometChime, loadSounds } from './sound';
 import {
   EMPTY, drawBar, drawCaps, drawConstellation, drawGhosts, drawLines, drawSky, drawStar, drawTrail,
   ease, layout, lerp, record, starfield, useLoop, useSkyFonts, wrap,
@@ -16,8 +18,10 @@ import { C } from '../lib/theme';
 
 /* ---------------- the drop ---------------- */
 
-// The falling field. Drop uses it as is; Pass it around gives it a shorter round, each player's deck, and their name.
-export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
+// The falling field. Drop uses it as is; Pass it around gives it a shorter round, each player's deck and name;
+// the daily passes its own pre-dealt `cards` and a seeded `rng` so every phone sees the same sky.
+// One comet may streak across each round, and quick catches in a row build a combo. Both score speed only.
+export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards, rng = Math.random }) {
   const { width: W, height: H } = useWindowDimensions();
   const ins = useSafeAreaInsets();
   const fonts = useSkyFonts();
@@ -30,18 +34,39 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
 
   // Mutable game state lives in a ref and is only touched from the loop and touch handlers.
   const G = useRef(null);
-  const game = () => (G.current ??= { deck: deal(SOLO_PER_WHY, Math.random, deck ?? deckNow()), live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H) });
+  const game = () => (G.current ??= {
+    deck: cards ? cards.map((c) => ({ ...c })) : deal(SOLO_PER_WHY, rng, deck ?? deckNow()),
+    live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], pops: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H),
+    cometAt: rng() < 0.8 ? roundMs * (0.25 + rng() * 0.5) : null, combo: 0, bestCombo: 0, lastCatch: -1e9, comets: 0,
+  });
+  useEffect(() => { loadSounds(); }, []);
 
   const pts = () => layout(game().kept, geo.sky);
 
-  const spawn = () => {
+  const spawn = (comet = false) => {
     const g = game();
     const c = g.deck.shift();
     if (!c) return;
     const { lines, mw } = wrap(fonts.label, c.t, Math.min(170, W * 0.48));
     const pad = mw / 2 + 12;
     const p = g.gt / roundMs;
-    g.live.push({ ...c, lines, mw, pad, x: pad + Math.random() * (W - 2 * pad), vx: (Math.random() - 0.5) * 50, born: g.gt, dur: 6200 - 2800 * p, trail: [], y: geo.top });
+    if (comet) {
+      // A comet crosses the sky on a diagonal in under two seconds.
+      const fromLeft = rng() < 0.5;
+      g.live.push({ ...c, comet: true, lines, mw, pad, x: fromLeft ? pad : W - pad, vx: (fromLeft ? 1 : -1) * W * 0.42, born: g.gt, dur: 1900, trail: [], y: geo.top });
+      return;
+    }
+    g.live.push({ ...c, lines, mw, pad, x: pad + rng() * (W - 2 * pad), vx: (rng() - 0.5) * 50, born: g.gt, dur: 6200 - 2800 * p, trail: [], y: geo.top });
+  };
+
+  // Catches within COMBO_MS of each other build a combo; the chime climbs with it.
+  const caught = (m) => {
+    const g = game();
+    g.combo = g.gt - g.lastCatch <= COMBO_MS ? g.combo + 1 : 1;
+    g.lastCatch = g.gt;
+    g.bestCombo = Math.max(g.bestCombo, g.combo);
+    if (m.comet) { g.comets++; cometChime(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } else chime(g.combo);
+    if (g.combo >= 2 || m.comet) g.pops.push({ x: m.x, y: m.y, t: 0, label: m.comet ? 'comet' : `×${g.combo}` });
   };
 
   const keep = (m) => {
@@ -52,7 +77,8 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
     m.landed = false;
     g.kept.push(m);
     g.flies.push({ m, x0: m.x, y0: m.y, t: 0 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(g.combo >= 2 ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);
+    caught(m);
   };
 
   const setPending = (m) => { const g = game(); g.pending = m; g.scale = 0.12; Haptics.selectionAsync(); };
@@ -72,6 +98,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
     g.kept[i] = inn;
     g.flies.push({ m: inn, x0: inn.x, y0: inn.y, t: 0 });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    caught(inn);
   };
 
   const hitFalling = (x, y) => {
@@ -119,6 +146,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
     if (g.over) return;
     g.gt += dt * g.scale;
     const p = Math.min(1, g.gt / roundMs);
+    if (g.cometAt != null && g.gt >= g.cometAt && g.deck.length) { g.cometAt = null; spawn(true); }
     if (g.gt >= g.next && g.deck.length) { spawn(); g.next = g.gt + 1500 - 750 * p; }
     for (const m of g.live.slice()) {
       const f = (g.gt - m.born) / m.dur;
@@ -127,7 +155,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
       if (m.x < m.pad) { m.x = m.pad; m.vx = Math.abs(m.vx); }
       if (m.x > W - m.pad) { m.x = W - m.pad; m.vx = -Math.abs(m.vx); }
       m.trail.unshift([m.x, m.y]);
-      m.trail.length = Math.min(m.trail.length, 20);
+      m.trail.length = Math.min(m.trail.length, m.comet ? 36 : 20);
       if (f >= 1) {
         if (g.pending === m) cancelPending();
         m.left = g.gt;
@@ -137,6 +165,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
     }
     g.flies = g.flies.filter((fl) => { fl.t += dt / 480; if (fl.t >= 1) { fl.m.landed = true; return false; } return true; });
     g.fx = g.fx.filter((f) => (f.t += dt / 900) < 1);
+    g.pops = g.pops.filter((f) => (f.t += dt / 800) < 1);
     if (g.gt >= roundMs || (!g.deck.length && !g.live.length && !g.flies.length)) finish();
   };
 
@@ -148,6 +177,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
     const full = g.kept.length >= BASKET;
     const hint = g.pending ? 'Tap a star in your sky to let it go' : full ? 'Full · tap a falling star to swap' : who ? `${who} · keep five` : 'Keep five';
     drawCaps(c, hint, 22, geo.hudY, f.caps, C.gold, 0.95);
+    if (g.combo >= 2 && g.gt - g.lastCatch <= COMBO_MS) drawCaps(c, `×${g.combo}`, W - 60, geo.hudY, f.caps, C.glow, 1, 'left', 2);
     const left = Math.max(0, 1 - g.gt / roundMs);
     drawBar(c, 22, geo.hudY + 9, W - 44, 2, 'rgba(239,230,214,0.12)');
     drawBar(c, 22, geo.hudY + 9, (W - 44) * left, 2, C.gold);
@@ -164,9 +194,9 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
     for (const m of g.live) {
       const al = Math.max(0, Math.min(1, (geo.fadeY - m.y) / 70));
       const dim = g.pending && g.pending !== m ? 0.45 : 1;
-      drawTrail(c, m.trail, al * dim);
-      drawStar(c, m.x, m.y, 4.5, al * dim, g.pending === m);
-      drawLines(c, m.lines, m.x, m.y + 10, f.label, 21, al * dim);
+      drawTrail(c, m.trail, al * dim * (m.comet ? 1.6 : 1));
+      drawStar(c, m.x, m.y, m.comet ? 6.5 : 4.5, al * dim, g.pending === m || m.comet);
+      drawLines(c, m.lines, m.x, m.y + 10, f.label, 21, al * dim, m.comet ? C.glow : undefined);
     }
 
     // catches in flight
@@ -176,6 +206,9 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who }) {
       const e = ease(fl.t);
       drawStar(c, lerp(fl.x0, to.x, e), lerp(fl.y0, to.y, e) - Math.sin(e * Math.PI) * 50, lerp(5, 3.4, e), 1, true);
     }
+
+    // combo and comet pops float up and fade
+    for (const p of g.pops) drawCaps(c, p.label, p.x, p.y - 18 - p.t * 40, f.caps, C.glow, 1 - p.t, 'center', 2);
 
     // a star let go drifts down and fades
     for (const fx of g.fx) {

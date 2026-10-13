@@ -15,7 +15,9 @@ export function useSkyFonts() {
   const small = useFont(FILES.serif, 11);
   const italic = useFont(FILES.italic, 13);
   const caps = useFont(FILES.sans, 9);
-  return label && small && italic && caps ? { label, small, italic, caps } : null;
+  const title = useFont(FILES.serif, 28);
+  const huge = useFont(FILES.serif, 40);
+  return label && small && italic && caps && title && huge ? { label, small, italic, caps, title, huge } : null;
 }
 
 export const EMPTY = createPicture(() => {});

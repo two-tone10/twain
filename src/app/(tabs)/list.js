@@ -91,10 +91,7 @@ export default function List() {
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.wrap}>
           <Eyebrow>Your list</Eyebrow>
-          <Text style={styles.h2}>
-            Moments you might{'\n'}
-            <Text style={styles.em}>actually do.</Text>
-          </Text>
+          <Text style={styles.h2}>Up <Text style={styles.em}>next.</Text></Text>
 
           {due && !glad && !noteFor && (
             <View style={styles.card}>
@@ -125,13 +122,12 @@ export default function List() {
           )}
 
           {!todays.length && !week.length && !someday.length && !done.length && !due && (
-            <Text style={styles.empty}>Nothing here yet. After a round, tap “Make one real” and the star you pick waits here with its day.</Text>
+            <Text style={styles.empty}>Empty. After a round, tap “Make one real.”</Text>
           )}
 
           {todays.length > 0 && (
             <View style={styles.section}>
               <Eyebrow>Today</Eyebrow>
-              <Text style={styles.hint}>Try one if the day allows.</Text>
               {todays.map(row)}
             </View>
           )}
@@ -173,7 +169,7 @@ export default function List() {
           <View style={[styles.section, styles.evening]}>
             <View style={{ flex: 1, gap: 3 }}>
               <Text style={styles.todoText}>Tonight’s star</Text>
-              <Text style={styles.hint}>A quiet note at 6pm with one moment from your list. Only on days the list has something.</Text>
+              <Text style={styles.hint}>A 6pm note with one thing from your list.</Text>
             </View>
             <Switch value={evening} onValueChange={toggleEvening} trackColor={{ true: C.gold, false: C.line }} thumbColor={C.ink} accessibilityLabel="Tonight’s star" />
           </View>

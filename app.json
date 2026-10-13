@@ -70,7 +70,8 @@
             }
           ]
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "scheme": "keep",
     "backgroundColor": "#05060f",

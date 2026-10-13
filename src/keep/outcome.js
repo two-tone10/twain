@@ -6,14 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BASKET, CUT_MS, WHY } from './content.mjs';
-import { cutPair, headline, soloLines } from './insight.mjs';
+import { CUT_MS, WHY } from './content.mjs';
+import { cutPair, soloLines } from './insight.mjs';
 import { SAID_ROUNDS as PATTERN_ROUNDS } from './readings.mjs';
 import { WHENS, askAtFor, followUp, rememberPeople, withLabel } from './plans.mjs';
 import { drawConstellation, layout, record, useSkyFonts } from './sky';
 import { Button, Eyebrow, goHome, Reading, StillSky } from './ui';
-import { addToList, loadRounds } from '../lib/storage';
-import { shareSky } from './share';
+import { addToList, loadMyName, loadRounds, saveMyName } from '../lib/storage';
+import { shareCard } from './share';
+import { fmtSpeed, shareText, skyLine, skyName } from './fun.mjs';
 import { loadPeople, savePeople } from '../lib/prefs';
 import { C, F, R, S } from '../lib/theme';
 
@@ -149,55 +150,84 @@ function Shell({ children }) {
   );
 }
 
-// The short reading: constellation, headline, a line or two, and how far along your pattern is.
+// The short reading: score, the constellation and its name. The longer lines wait behind a tap.
 function Reading1({ g, onNext, onAgain, againLabel }) {
   const { width: W } = useWindowDimensions();
   const fonts = useSkyFonts();
   const [played, setPlayed] = useState(null);
-  useEffect(() => { loadRounds().then((r) => setPlayed(r.filter((x) => x.items?.length).length)); }, []);
+  const [why, setWhy] = useState(false);
+  const [me, setMe] = useState(null);
+  useEffect(() => { loadRounds().then((r) => setPlayed(r.filter((x) => x.items?.length).length)); loadMyName().then(setMe); }, []);
 
-  const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null }).slice(0, 2);
-  const heroH = 200;
+  const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null }).slice(0, 3);
+  const name = skyName(g.kept);
+  const heroH = 210;
   const hero = useMemo(() => {
     if (!fonts) return null;
     const box = { x: S.lg, y: 22, w: W - 2 * S.lg, h: heroH - 44 };
     return record(W, heroH, (c) => drawConstellation(c, g.kept, layout(g.kept, box), { font: fonts.small, box, bright: true }));
   }, [fonts, W, g.kept]);
 
+  const share = async () => {
+    if (!fonts || !g.kept.length) return;
+    const speed = g.speed != null ? fmtSpeed(g.speed) : null;
+    try {
+      if (g.day) {
+        if (me) await saveMyName(me.trim());
+        await shareCard('daily', { day: g.day, kept: g.kept, name, speed }, fonts, shareText({ day: g.day, kept: g.kept, speed: g.speed, who: me?.trim() }));
+      } else {
+        await shareCard('round', { kept: g.kept, name, speed }, fonts, `${name} ✦ my sky in Keep`);
+      }
+    } catch {}
+  };
+
+  const stats = [g.speed != null && fmtSpeed(g.speed), g.comets ? 'COMET' : null, g.bestCombo >= 2 && `×${g.bestCombo}`].filter(Boolean);
+  const bests = [g.beat?.speed && 'FASTEST YET', g.beat?.combo && 'BEST COMBO'].filter(Boolean);
+
   return (
     <Shell>
-      <Eyebrow>Your constellation · {g.kept.length} of {BASKET}</Eyebrow>
+      <View style={styles.score}>
+        <Text style={styles.scoreT}>{g.day ? `DAILY #${g.day}` : stats.join('  ·  ')}</Text>
+        {g.day ? <Text style={styles.scoreT}>{stats.join('  ·  ')}</Text> : null}
+      </View>
+      {bests.length > 0 && <Text style={styles.best}>{bests.join(' · ')}</Text>}
       {hero && g.kept.length > 0 && (
         <Canvas style={{ width: W, height: heroH, marginHorizontal: -S.lg, backgroundColor: 'transparent' }}>
           <Picture picture={hero} />
         </Canvas>
       )}
-      <Text style={styles.h2}>{headline(g.kept)}</Text>
-      <View style={{ gap: 10 }}>
-        {lines.map((l, i) => <Reading key={i} line={l} />)}
-      </View>
-      {fonts && g.kept.length > 0 && (
-        <Pressable accessibilityRole="button" hitSlop={8} onPress={() => shareSky(g.kept, headline(g.kept), fonts).catch(() => {})}>
-          <Text style={styles.share}>Share your sky ›</Text>
-        </Pressable>
-      )}
-      {played != null && (played < PATTERN_ROUNDS ? (
-        <View style={styles.progress}>
-          <View style={styles.slots}>
-            {Array.from({ length: PATTERN_ROUNDS }, (_, i) => <View key={i} style={[styles.slot, i < played && styles.slotOn]} />)}
-          </View>
-          <Text style={styles.small}>One round is a snapshot. Your pattern shows up after {PATTERN_ROUNDS}.</Text>
+      {name ? (
+        <View style={{ alignItems: 'center', gap: 4 }}>
+          <Text style={styles.drew}>{g.isNew ? 'NEW SKY · YOU DREW' : 'YOU DREW'}</Text>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.small}>{skyLine(g.kept)}</Text>
+          {g.day ? <View style={styles.dots}>{g.kept.map((m, i) => <View key={i} style={[styles.bigDot, { backgroundColor: WHY[m.k].color }]} />)}</View> : null}
         </View>
       ) : (
-        <Pressable onPress={() => router.navigate('/sky')} style={styles.progress}>
-          <Text style={styles.small}>This round is in your sky now. <Text style={{ color: C.gold }}>See what it adds ›</Text></Text>
+        <Text style={[styles.name, { textAlign: 'center' }]}>Every star got away.</Text>
+      )}
+      {lines.length > 0 && (
+        <Pressable accessibilityRole="button" onPress={() => setWhy((w) => !w)} style={{ alignItems: 'center' }}>
+          <Text style={styles.share}>{why ? 'Less' : 'Why this sky ›'}</Text>
         </Pressable>
-      ))}
+      )}
+      {why && <View style={{ gap: 10 }}>{lines.map((l, i) => <Reading key={i} line={l} />)}</View>}
+      {played != null && played < PATTERN_ROUNDS && (
+        <View style={[styles.slots, { alignSelf: 'center' }]}>
+          {Array.from({ length: PATTERN_ROUNDS }, (_, i) => <View key={i} style={[styles.slot, i < played && styles.slotOn]} />)}
+        </View>
+      )}
+      {g.day && me != null && !me && (
+        <TextInput value={me} onChangeText={setMe} placeholder="Your name, so friends know who sent it" placeholderTextColor={C.faint} maxLength={20} style={styles.input} />
+      )}
       <View style={{ flex: 1 }} />
-      {onNext ? <Button label="Make one real" onPress={onNext} /> : null}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {onNext ? <Button label="Make one real" onPress={onNext} style={{ flex: 1 }} /> : null}
+        {g.kept.length > 0 && <Button ghost={!!onNext} label={g.day ? 'Send' : '↗'} onPress={share} style={onNext ? { width: g.day ? 92 : 58, paddingHorizontal: 0 } : { flex: 1 }} />}
+      </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Button ghost label="Home" onPress={() => goHome()} style={{ flex: 1 }} />
-        {onAgain && <Button ghost={!!onNext} label={againLabel} onPress={onAgain} style={{ flex: 1.4 }} />}
+        {onAgain && <Button ghost label={againLabel} onPress={onAgain} style={{ flex: 1.4 }} />}
       </View>
     </Shell>
   );
@@ -303,6 +333,13 @@ const styles = StyleSheet.create({
   plan: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
   planWhen: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
   planText: { fontFamily: F.serifRegular, fontSize: 26, lineHeight: 31, color: C.ink },
+  score: { flexDirection: 'row', justifyContent: 'space-between' },
+  scoreT: { fontFamily: F.sansMedium, fontSize: 11, letterSpacing: 2.5, color: C.gold },
+  best: { alignSelf: 'flex-start', fontFamily: F.sansBold, fontSize: 10, letterSpacing: 2, color: C.dark, backgroundColor: C.glow, borderRadius: R.full, overflow: 'hidden', paddingVertical: 3, paddingHorizontal: 10 },
+  drew: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 3, color: C.faint },
+  name: { fontFamily: F.serifRegular, fontSize: 34, lineHeight: 40, color: C.ink, textAlign: 'center' },
+  dots: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  bigDot: { width: 14, height: 14, borderRadius: 7 },
   share: { fontFamily: F.sansMedium, fontSize: 13, letterSpacing: 1, color: C.gold },
   progress: { gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   slots: { flexDirection: 'row', gap: 10 },

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Field } from '../keep/field';
 import { Outcome } from '../keep/outcome';
-import { addRound, addSky, loadSkies } from '../lib/storage';
+import { recordRound } from '../keep/records';
+import { loadSkies } from '../lib/storage';
 import { C } from '../lib/theme';
 
 export default function Play() {
@@ -13,10 +14,9 @@ export default function Play() {
 
   useEffect(() => { loadSkies().then(setSkies); }, [round]);
 
-  const finished = (g) => {
-    addRound(g.kept);
-    if (g.kept.length) addSky(g.kept);
-    setGame(g);
+  const finished = async (g) => {
+    const extra = await recordRound(g);
+    setGame({ ...g, ...extra });
     setPhase('done');
   };
   const again = () => { setRound((r) => r + 1); setPhase('play'); };

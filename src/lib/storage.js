@@ -75,3 +75,33 @@ export async function toggleListItem(id) {
 
 export const loadNames = () => load('keep:names', ['', '']);
 export const saveNames = (names) => save('keep:names', names);
+
+// Game records: names you've drawn (with when first and how often), personal bests, and daily results.
+export const loadNamed = () => load('keep:named', {});
+export async function addNamed(name) {
+  if (!name) return { all: {}, isNew: false };
+  const all = await load('keep:named', {});
+  const isNew = !all[name];
+  all[name] = { first: all[name]?.first ?? Date.now(), n: (all[name]?.n ?? 0) + 1 };
+  await save('keep:named', all);
+  return { all, isNew };
+}
+
+export const loadBest = () => load('keep:best', { speed: null, combo: 0 });
+// Returns which records this round beat.
+export async function updateBest({ speed, combo }) {
+  const best = await load('keep:best', { speed: null, combo: 0 });
+  const beat = { speed: speed != null && best.speed != null && speed < best.speed, combo: combo > best.combo && combo >= 3 && best.combo > 0 };
+  await save('keep:best', { speed: beat.speed ? speed : best.speed, combo: Math.max(best.combo, combo) });
+  return beat;
+}
+
+export const loadDailies = () => load('keep:dailies', {});
+export async function saveDaily(day, result) {
+  const all = await load('keep:dailies', {});
+  all[day] = result;
+  await save('keep:dailies', all);
+}
+
+export const loadMyName = () => load('keep:myname', '');
+export const saveMyName = (n) => save('keep:myname', n);

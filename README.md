@@ -6,6 +6,15 @@ Keep is a one-thumb game that shows you what you reach for. Every moment carries
 
 The repo is still named `twain` (the earlier card game lives in git history on `c7fcb65` and before). The app is **Keep**: bundle id `com.lipurposefe.keep`, App Store name "Keep: Catch a Falling Star", "Keep" under the icon.
 
+## The game layer
+
+- **Today's drop** (`/daily`): the same 21 stars for everyone each day (seeded by the day, Everyday deck, no server). One per day; afterward Home shows it done and offers to send it.
+- **Send a drop** (`/challenge`): a link (`https://lipurposefe.com/keep/play?d=&n=&k=&w=&s=`) carries the day, name, kept positions, whys and speed. The web page (lipurposefe repo, `keep/play.html`) shows the sky and opens `keep://challenge?...`; the app replays the same stars and compares.
+- **Comets and combos**: one rare comet per round streaks across fast; catches within 1.3s build a combo with rising chimes (`assets/sounds`, `src/keep/sound.js`). Scoring is speed only (average catch time, personal bests), never which moments.
+- **Named skies**: every round is named "The <adj> <noun>" from its two strongest whys (49 in all, collected in Kept). **Your sign** (Sky) is the why you grab fastest after five drops: Spark, Harbor, Comet, Hearth, Forge, Prism, Compass.
+- **Share cards** (`src/keep/share.js`): round, daily, sign, Kept totals, family sky. Drawn off screen with Skia and shared as PNG.
+- Logic in `src/keep/fun.mjs` (tested).
+
 ## Modes
 
 - **Drop** (45 seconds): moments fall and speed up. Keep five. Once full, tap a falling star to swap one out (time slows while you choose). Ends with a **final cut**: your fastest and slowest grab, six seconds to keep one.

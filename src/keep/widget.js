@@ -1,12 +1,14 @@
 // Keeps the home-screen widget in step with the list. The widget module only exists in real builds,
 // so in Expo Go (or if anything goes wrong) this quietly does nothing.
+import { requireOptionalNativeModule } from 'expo';
 import { WHY } from './content.mjs';
 import { widgetPick } from './plans.mjs';
 
 let widget;
 function load() {
   if (widget === undefined) {
-    try { widget = require('../widgets/TonightStar').default; } catch { widget = null; }
+    if (!requireOptionalNativeModule('ExpoWidgets')) widget = null;
+    else try { widget = require('../widgets/TonightStar').default; } catch { widget = null; }
   }
   return widget;
 }

@@ -7,9 +7,11 @@ import { Canvas, Picture } from '@shopify/react-native-skia';
 import { WHYS, WHY } from '../../keep/content.mjs';
 import { CHANGE_ROUNDS, change, codex, holdsUp, monthLabel, monthlyMix, timeline, totals } from '../../keep/kept.mjs';
 import { withLabel } from '../../keep/plans.mjs';
+import { ALL_NAMES, signFor } from '../../keep/fun.mjs';
+import { shareCard } from '../../keep/share';
 import { drawBands, drawCaps, drawDot, record, useSkyFonts } from '../../keep/sky';
 import { Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
-import { loadList, loadRounds } from '../../lib/storage';
+import { loadList, loadNamed, loadRounds } from '../../lib/storage';
 import { exportBackup, pickBackup, restoreBackup } from '../../lib/backup';
 import { loadPrefs } from '../../lib/prefs';
 import { C, F, R, S } from '../../lib/theme';
@@ -26,7 +28,7 @@ export default function Kept() {
   const [weeks, setWeeks] = useState(null);
 
   const reload = useCallback(() => {
-    Promise.all([loadRounds(), loadList()]).then(([rounds, list]) => setData({ rounds, list, now: Date.now() }));
+    Promise.all([loadRounds(), loadList(), loadNamed()]).then(([rounds, list, named]) => setData({ rounds, list, named, now: Date.now() }));
   }, []);
   useFocusEffect(reload);
 
@@ -81,6 +83,9 @@ export default function Kept() {
   const h = holdsUp(data);
   const groups = codex(data.list);
   const since = t.since ? new Date(t.since).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
+  const names = Object.entries(data.named).sort((a, b) => b[1].n - a[1].n);
+  const sign = signFor(data.rounds);
+  const shareStats = () => fonts && shareCard('kept', { since, done: t.done, glad: t.glad, people: t.people, sign: sign.name }, fonts, `${t.done} things done, ${t.glad} I was glad about ✦ Keep`).catch(() => {});
 
   return (
     <View style={styles.root}>
@@ -88,7 +93,14 @@ export default function Kept() {
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.wrap}>
           <Eyebrow>Kept{since ? ` · since ${since}` : ''}</Eyebrow>
-          <Text style={styles.h2}>{t.done ? 'Look at all you did.' : 'Everything you do lands here.'}</Text>
+          <View style={styles.headRow}>
+            <Text style={styles.h2}>{t.done ? 'Look at all you did.' : 'It all lands here.'}</Text>
+            {t.done > 0 && (
+              <Pressable accessibilityRole="button" accessibilityLabel="Share your totals" hitSlop={10} onPress={shareStats}>
+                <Text style={styles.shareT}>↗</Text>
+              </Pressable>
+            )}
+          </View>
           <View style={styles.stats}>
             {[[t.caught, 'stars caught'], [t.done, 'moments done'], [t.glad, 'glad you did'], [t.people, t.people === 1 ? 'person' : 'people']].map(([n, l]) => (
               <View key={l} style={styles.stat}>
@@ -115,10 +127,10 @@ export default function Kept() {
                 <Canvas style={{ width: cw, height: 230 }}>
                   <Picture picture={timePic} />
                 </Canvas>
-                <Text style={styles.note}>One star for each thing you did, by when and by why. Gold rings are the ones you were glad about.</Text>
+                <Text style={styles.note}>Gold ring: glad you did.</Text>
               </>
             ) : (
-              <Text style={styles.empty}>{weeks && t.done ? 'Nothing done in the last four weeks. It’s all still here under “Since you started.”' : 'When you tick off a moment or answer “Did you get to it?” with yes, its star appears here and stays.'}</Text>
+              <Text style={styles.empty}>{weeks && t.done ? 'Nothing in the last four weeks.' : 'Tick something off your list and its star lands here.'}</Text>
             )}
           </View>
 
@@ -131,7 +143,7 @@ export default function Kept() {
               </Canvas>
             )}
             {ch ? <Reading line={ch.line} style={styles.big} /> : null}
-            {!bandPic && !ch && <Text style={styles.empty}>After {CHANGE_ROUNDS * 2} rounds Keep compares your first rounds with your latest, and after two months it shows how your mix of whys shifts.</Text>}
+            {!bandPic && !ch && <Text style={styles.empty}>Shows up after {CHANGE_ROUNDS * 2} rounds.</Text>}
             {ch && (
               <View style={styles.thenNow}>
                 {[['THEN', ch.then], ['NOW', ch.now]].map(([l, ks]) => (
@@ -173,10 +185,22 @@ export default function Kept() {
             </View>
           )}
 
+          {/* skies you've named */}
+          <View style={styles.block}>
+            <Eyebrow>Skies you’ve drawn · {names.length} of {ALL_NAMES}</Eyebrow>
+            {names.length ? (
+              <View style={styles.people}>
+                {names.map(([n, v]) => (
+                  <View key={n} style={styles.person}><Text style={styles.skyN}>{n.replace(/^The /, '')}</Text>{v.n > 1 && <Text style={styles.personC}>{v.n}</Text>}</View>
+                ))}
+              </View>
+            ) : <Text style={styles.empty}>Each round’s shape gets a name. Catch them all.</Text>}
+          </View>
+
           {/* 4. the codex */}
           <View style={styles.block}>
             <Eyebrow>Your codex</Eyebrow>
-            {!groups.length && <Text style={styles.empty}>Every moment you do will be written here, by month, with who was there and whether you were glad.</Text>}
+            {!groups.length && <Text style={styles.empty}>Everything you do, by month.</Text>}
             {groups.map((g) => (
               <View key={g.key} style={{ gap: 2 }}>
                 <Text style={styles.month}>{monthLabel(g.key, data.now).toUpperCase()}</Text>
@@ -199,7 +223,7 @@ export default function Kept() {
           {/* 5. keeping it safe */}
           <View style={styles.block}>
             <Eyebrow>Keep it safe</Eyebrow>
-            <Text style={styles.empty}>Everything here lives only on this phone. iPhone’s own iCloud Backup includes it. To be sure, save a copy to Files or iCloud Drive now and then.</Text>
+            <Text style={styles.empty}>All of this lives on this phone. Save a copy now and then.</Text>
             <View style={styles.safeRow}>
               <Pressable accessibilityRole="button" onPress={backUp} style={styles.safeB}><Text style={styles.safeT}>Back up</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={restore} style={styles.safeB}><Text style={styles.safeT}>Restore from a backup</Text></Pressable>
@@ -224,7 +248,10 @@ function Row({ k, t, right }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.sky0 },
   wrap: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
-  h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
+  h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink, flex: 1 },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  shareT: { fontFamily: F.sansMedium, fontSize: 22, color: C.gold },
+  skyN: { fontFamily: F.serifItalic, fontSize: 14, color: C.ink },
   big: { fontSize: 20, lineHeight: 28 },
   stats: { flexDirection: 'row', gap: 6 },
   stat: { flex: 1, gap: 1 },
