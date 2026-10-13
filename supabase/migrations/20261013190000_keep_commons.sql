@@ -1,252 +1,144 @@
 -- Keep commons. Contract: docs/commons-api.md.
--- Anonymous: the only id is a random per-install `device`, read only by these functions.
--- Anon and authenticated get RPC access only; the tables are internal.
+-- Tables live in a private schema the REST API doesn't expose; the app only calls the functions below.
 
-create table if not exists public.keep_star_events (
+create schema if not exists keep;
+revoke all on schema keep from public, anon, authenticated;
+
+create table keep.star_events (
   id bigint generated always as identity primary key,
   device uuid not null,
-  mode text not null check (mode in ('drop','daily','drift','slow','challenge','pass')),
-  deck text not null check (deck in ('everyday','campus','city','kids','later','young','community')),
+  mode text not null,
+  deck text not null,
   day int,
-  t text not null check (char_length(t) between 1 and 40),
-  k text not null check (k in ('delight','setting','novelty','company','skill','taste','direction')),
+  t text not null,
+  k text not null,
   kept boolean not null,
   dwell real,
   created_at timestamptz not null default now()
 );
-create index if not exists keep_star_events_day_idx on public.keep_star_events (day) where day is not null;
-create index if not exists keep_star_events_created_idx on public.keep_star_events (created_at);
+create index on keep.star_events (created_at);
+create index on keep.star_events (day) where day is not null;
 
-create table if not exists public.keep_submissions (
+create table keep.round_calls (device uuid not null, at timestamptz not null default now());
+create index on keep.round_calls (device, at);
+
+create table keep.submissions (
   id bigint generated always as identity primary key,
   device uuid not null,
-  t text not null check (char_length(t) between 3 and 30),
-  k text not null check (k in ('delight','setting','novelty','company','skill','taste','direction')),
+  t text not null,
+  k text not null,
   deck text not null default 'everyday',
-  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now(),
   reviewed_at timestamptz
 );
-create index if not exists keep_submissions_status_idx on public.keep_submissions (status, created_at);
-create index if not exists keep_submissions_device_idx on public.keep_submissions (device, created_at);
-create index if not exists keep_submissions_approved_idx on public.keep_submissions (reviewed_at) where status = 'approved';
+create index on keep.submissions (status, reviewed_at);
+create index on keep.submissions (device, created_at);
 
--- One row per log_round call, for the hourly rate limit.
-create table if not exists public.keep_round_calls (
-  device uuid not null,
-  created_at timestamptz not null default now()
-);
-create index if not exists keep_round_calls_device_idx on public.keep_round_calls (device, created_at);
+create or replace function keep.valid_why(x text) returns boolean language sql immutable as
+$$ select x in ('delight','setting','novelty','company','skill','taste','direction') $$;
 
--- commons_board is computed at most every 15 minutes and served from here.
-create table if not exists public.keep_board_cache (
-  id int primary key default 1 check (id = 1),
-  board jsonb not null,
-  computed_at timestamptz not null
-);
-
-alter table public.keep_star_events enable row level security;
-alter table public.keep_submissions enable row level security;
-alter table public.keep_round_calls enable row level security;
-alter table public.keep_board_cache enable row level security;
-revoke all on public.keep_star_events, public.keep_submissions, public.keep_round_calls, public.keep_board_cache from public;
-do $$ begin
-  if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke all on public.keep_star_events, public.keep_submissions, public.keep_round_calls, public.keep_board_cache from anon, authenticated;
-    -- The moderation page (server-side, service role) reads and reviews keep_submissions.
-    grant select, update on public.keep_submissions to service_role;
-    grant select on public.keep_star_events to service_role;
-  end if;
-end $$;
-
-create or replace function public.keep_is_why(x text) returns boolean
-language sql immutable as $$
-  select x in ('delight','setting','novelty','company','skill','taste','direction')
-$$;
-
-create or replace function public.keep_is_deck(x text) returns boolean
-language sql immutable as $$
-  select x in ('everyday','campus','city','kids','later','young','community')
-$$;
-
-create or replace function public.keep_uuid(x text) returns uuid
-language plpgsql immutable as $$
-begin
-  if x !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return null; end if;
-  return x::uuid;
-end $$;
-
--- log_round(p) → void. One call per finished round. Malformed input is ignored.
+-- One call per finished round: every star that fell, kept or not.
 create or replace function public.log_round(p jsonb) returns void
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = keep, public as $$
 declare
-  v_device uuid;
-  v_mode text;
-  v_deck text;
-  v_day int;
-  v_stars jsonb;
+  d uuid;
+  m text := p->>'mode';
 begin
-  if p is null or jsonb_typeof(p) <> 'object' then return; end if;
-  v_device := keep_uuid(p->>'device');
-  v_mode := p->>'mode';
-  v_deck := p->>'deck';
-  v_stars := p->'stars';
-  if v_device is null
-     or v_mode is null or v_mode not in ('drop','daily','drift','slow','challenge','pass')
-     or not coalesce(keep_is_deck(v_deck), false)
-     or v_stars is null or jsonb_typeof(v_stars) <> 'array'
-     or jsonb_array_length(v_stars) = 0 or jsonb_array_length(v_stars) > 30 then
-    return;
-  end if;
-  if jsonb_typeof(p->'day') = 'number' then
-    if (p->>'day') !~ '^-?[0-9]+$' then return; end if;
-    v_day := (p->>'day')::int;
-  elsif p->'day' is not null and jsonb_typeof(p->'day') <> 'null' then
-    return;
-  end if;
-
-  if (select count(*) from keep_round_calls where device = v_device and created_at > now() - interval '1 hour') >= 60 then
-    return;
-  end if;
-  insert into keep_round_calls (device) values (v_device);
-  delete from keep_round_calls where created_at < now() - interval '2 hours' and random() < 0.05;
-
-  insert into keep_star_events (device, mode, deck, day, t, k, kept, dwell)
-  select v_device, v_mode, v_deck, v_day, btrim(s->>'t'), s->>'k', (s->>'kept')::boolean,
-         case when jsonb_typeof(s->'dwell') = 'number' then (s->>'dwell')::real end
-  from jsonb_array_elements(v_stars) s
-  where jsonb_typeof(s) = 'object'
-    and jsonb_typeof(s->'t') = 'string' and char_length(btrim(s->>'t')) between 1 and 40
-    and keep_is_why(s->>'k')
-    and jsonb_typeof(s->'kept') = 'boolean';
+  begin d := (p->>'device')::uuid; exception when others then return; end;
+  if d is null or m not in ('drop','daily','drift','slow','challenge','pass') then return; end if;
+  if jsonb_typeof(p->'stars') <> 'array' or jsonb_array_length(p->'stars') > 30 then return; end if;
+  if (select count(*) from keep.round_calls where device = d and at > now() - interval '1 hour') >= 60 then return; end if;
+  insert into keep.round_calls (device) values (d);
+  insert into keep.star_events (device, mode, deck, day, t, k, kept, dwell)
+  select d, m, coalesce(left(p->>'deck', 20), 'everyday'), nullif(p->>'day', '')::int,
+         left(s->>'t', 40), s->>'k', coalesce((s->>'kept')::boolean, false), nullif(s->>'dwell', '')::real
+  from jsonb_array_elements(p->'stars') s
+  where keep.valid_why(s->>'k') and length(coalesce(s->>'t', '')) between 1 and 40;
+exception when others then return;
 end $$;
 
--- daily_stats(p_day) → [{ t, k, kept_pct, players }]. Empty under 20 players.
+-- For one day's daily: the share of players who kept each moment. Empty under 20 players.
 create or replace function public.daily_stats(p_day int)
 returns table (t text, k text, kept_pct numeric, players int)
-language sql stable security definer set search_path = public as $$
-  with ev as (
-    select e.device, e.t, e.k, bool_or(e.kept) as kept
-    from keep_star_events e
-    where e.day = p_day and e.mode in ('daily','challenge')
-    group by e.device, e.t, e.k
-  ),
-  n as (select count(distinct device)::int as players from ev)
-  select ev.t, ev.k, round(100.0 * avg(ev.kept::int), 1) as kept_pct, n.players
-  from ev, n
+language sql stable security definer set search_path = keep, public as $$
+  with e as (select * from keep.star_events where day = p_day and mode in ('daily','challenge')),
+  n as (select count(distinct device)::int as players from e)
+  select e.t, min(e.k), round(100.0 * count(distinct e.device) filter (where e.kept) / n.players, 1), n.players
+  from e, n
   where n.players >= 20
-  group by ev.t, ev.k, n.players
-  order by ev.t
+  group by e.t, n.players
+  order by 3 desc
 $$;
 
--- The board itself. Called by commons_board when the cache is stale.
-create or replace function public.keep_compute_board() returns jsonb
-language sql stable security definer set search_path = public as $$
-  with cur as (
-    select t, k, count(*)::int as shown, 100.0 * avg(kept::int) as rate
-    from keep_star_events where created_at >= now() - interval '7 days'
-    group by t, k
-  ),
-  prev as (
-    select t, k, count(*)::int as shown, 100.0 * avg(kept::int) as rate
-    from keep_star_events where created_at >= now() - interval '14 days' and created_at < now() - interval '7 days'
-    group by t, k
-  ),
-  most as (
-    select t, k, round(rate, 1) as pct, shown from cur where shown >= 50
-    order by rate desc, shown desc, t limit 10
-  ),
-  rare as (
-    select t, k, round(rate, 1) as pct, shown from cur where shown >= 50
-    order by rate asc, shown desc, t limit 10
-  ),
-  rising as (
-    select c.t, c.k, round(c.rate, 1) as pct, c.shown, c.rate - p.rate as delta
-    from cur c join prev p using (t, k)
-    where c.shown >= 30 and p.shown >= 30 and c.rate > p.rate
-    order by c.rate - p.rate desc, c.shown desc, c.t limit 10
+-- The board: most caught, almost never caught, and rising, over the last week.
+create or replace function public.commons_board() returns jsonb
+language sql stable security definer set search_path = keep, public as $$
+  with w as (
+    select t, min(k) k,
+      count(*) filter (where created_at > now() - interval '7 days') shown,
+      count(*) filter (where created_at > now() - interval '7 days' and kept) kept,
+      count(*) filter (where created_at <= now() - interval '7 days') shown0,
+      count(*) filter (where created_at <= now() - interval '7 days' and kept) kept0
+    from keep.star_events where created_at > now() - interval '14 days' group by t
+  ), r as (
+    select t, k, shown, round(100.0 * kept / nullif(shown, 0), 1) pct,
+      case when shown0 >= 30 and shown >= 30 then 100.0 * kept / shown - 100.0 * kept0 / shown0 end delta
+    from w
   )
   select jsonb_build_object(
-    'most', coalesce((select jsonb_agg(jsonb_build_object('t', t, 'k', k, 'pct', pct, 'shown', shown) order by pct desc, shown desc, t) from most), '[]'::jsonb),
-    'rare', coalesce((select jsonb_agg(jsonb_build_object('t', t, 'k', k, 'pct', pct, 'shown', shown) order by pct asc, shown desc, t) from rare), '[]'::jsonb),
-    'rising', coalesce((select jsonb_agg(jsonb_build_object('t', t, 'k', k, 'pct', pct, 'shown', shown) order by delta desc, shown desc, t) from rising), '[]'::jsonb)
+    'most', coalesce((select jsonb_agg(x) from (select t, k, pct, shown from r where shown >= 50 order by pct desc limit 10) x), '[]'),
+    'rare', coalesce((select jsonb_agg(x) from (select t, k, pct, shown from r where shown >= 50 order by pct asc limit 10) x), '[]'),
+    'rising', coalesce((select jsonb_agg(x) from (select t, k, pct, shown from r where delta > 0 order by delta desc limit 10) x), '[]')
   )
 $$;
 
--- commons_board() → { most, rare, rising }, refreshed about every 15 minutes.
-create or replace function public.commons_board() returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare
-  v_board jsonb;
-begin
-  select board into v_board from keep_board_cache where id = 1 and computed_at > now() - interval '15 minutes';
-  if v_board is not null then return v_board; end if;
-  if not pg_try_advisory_xact_lock(hashtext('keep_commons_board')) then
-    select board into v_board from keep_board_cache where id = 1;
-    return coalesce(v_board, keep_compute_board());
-  end if;
-  v_board := keep_compute_board();
-  insert into keep_board_cache (id, board, computed_at) values (1, v_board, now())
-  on conflict (id) do update set board = excluded.board, computed_at = excluded.computed_at;
-  return v_board;
-end $$;
-
--- submit_star(p) → { ok, reason }. Queued as pending; nothing shows until approved.
+-- A player's star for the commons. Held as pending until approved.
 create or replace function public.submit_star(p jsonb) returns jsonb
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = keep, public as $$
 declare
-  v_device uuid;
-  v_t text;
-  v_k text;
-  v_deck text;
-  v_low text;
+  d uuid;
+  txt text := btrim(regexp_replace(coalesce(p->>'t', ''), '\s+', ' ', 'g'));
+  w text := p->>'k';
 begin
-  if p is null or jsonb_typeof(p) <> 'object' then
+  begin d := (p->>'device')::uuid; exception when others then return jsonb_build_object('ok', false, 'reason', 'not_allowed'); end;
+  if length(txt) < 3 then return jsonb_build_object('ok', false, 'reason', 'too_short'); end if;
+  if length(txt) > 30 then return jsonb_build_object('ok', false, 'reason', 'too_long'); end if;
+  if not keep.valid_why(w) or txt ~* '(https?://|www\.|\.com|@)'
+     or txt ~* '\m(fuck|shit|bitch|cunt|dick|cock|pussy|nigg|fag|slut|whore|rape|kill)' then
     return jsonb_build_object('ok', false, 'reason', 'not_allowed');
   end if;
-  v_device := keep_uuid(p->>'device');
-  v_t := regexp_replace(btrim(coalesce(p->>'t', '')), '\s+', ' ', 'g');
-  v_k := p->>'k';
-  v_deck := coalesce(nullif(p->>'deck', ''), 'everyday');
-  if v_device is null or not coalesce(keep_is_why(v_k), false) or not keep_is_deck(v_deck) then
-    return jsonb_build_object('ok', false, 'reason', 'not_allowed');
-  end if;
-  if char_length(v_t) < 3 then return jsonb_build_object('ok', false, 'reason', 'too_short'); end if;
-  if char_length(v_t) > 30 then return jsonb_build_object('ok', false, 'reason', 'too_long'); end if;
-
-  v_low := lower(v_t);
-  if v_low ~ '(https?:|www\.|://|\m[a-z0-9-]+\.(com|net|org|io|co|app|ly|gg|me|xyz|ai|tv|us|uk|info|biz|link)\M)'
-     or v_low ~ '@[a-z0-9_]'
-     or v_low ~ '\m(fuck\w*|shit\w*|bitch\w*|cunt\w*|dick|dicks|cock|cocks|pussy|asshole\w*|bastard\w*|whore\w*|slut\w*|fag\w*|faggot\w*|nigg\w*|retard\w*|rape\w*|porn\w*|nude\w*|sex|sexy|kill yourself|kys|nazi\w*|hitler)\M' then
-    return jsonb_build_object('ok', false, 'reason', 'not_allowed');
-  end if;
-
-  if (select count(*) from keep_submissions where device = v_device and created_at > now() - interval '1 day') >= 5 then
+  if (select count(*) from keep.submissions where device = d and created_at > now() - interval '1 day') >= 5 then
     return jsonb_build_object('ok', false, 'reason', 'slow_down');
   end if;
-
-  insert into keep_submissions (device, t, k, deck) values (v_device, v_t, v_k, v_deck);
+  insert into keep.submissions (device, t, k, deck) values (d, txt, w, coalesce(left(p->>'deck', 20), 'everyday'));
   return jsonb_build_object('ok', true, 'reason', null);
 end $$;
 
--- community_moments(p_since) → [{ t, k, approved_at }], newest first, ≤ 500.
+-- Approved community stars since a time.
 create or replace function public.community_moments(p_since timestamptz)
 returns table (t text, k text, approved_at timestamptz)
-language sql stable security definer set search_path = public as $$
-  select s.t, s.k, s.reviewed_at as approved_at
-  from keep_submissions s
-  where s.status = 'approved' and s.reviewed_at > coalesce(p_since, '-infinity'::timestamptz)
-  order by s.reviewed_at desc
-  limit 500
+language sql stable security definer set search_path = keep, public as $$
+  select t, k, reviewed_at from keep.submissions
+  where status = 'approved' and reviewed_at > p_since
+  order by reviewed_at desc limit 500
 $$;
 
-revoke all on function public.log_round(jsonb), public.daily_stats(int), public.commons_board(),
-  public.submit_star(jsonb), public.community_moments(timestamptz), public.keep_compute_board(),
-  public.keep_is_why(text), public.keep_is_deck(text), public.keep_uuid(text) from public;
-do $$ begin
-  if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke all on function public.keep_compute_board(), public.keep_is_why(text), public.keep_is_deck(text), public.keep_uuid(text) from anon, authenticated;
-    grant execute on function public.log_round(jsonb), public.daily_stats(int), public.commons_board(),
-      public.submit_star(jsonb), public.community_moments(timestamptz) to anon, authenticated, service_role;
-  end if;
-end $$;
+-- Moderation, for the password-protected admin page only (service role).
+create or replace function public.keep_admin_list(p_status text default 'pending')
+returns table (id bigint, t text, k text, deck text, status text, created_at timestamptz)
+language sql stable security definer set search_path = keep, public as $$
+  select id, t, k, deck, status, created_at from keep.submissions where status = p_status order by created_at desc limit 200
+$$;
+
+create or replace function public.keep_admin_review(p_id bigint, p_status text) returns void
+language sql security definer set search_path = keep, public as $$
+  update keep.submissions set status = p_status, reviewed_at = now() where id = p_id and p_status in ('approved', 'rejected')
+$$;
+
+revoke all on function public.keep_admin_list(text) from public, anon, authenticated;
+revoke all on function public.keep_admin_review(bigint, text) from public, anon, authenticated;
+grant execute on function public.keep_admin_list(text) to service_role;
+grant execute on function public.keep_admin_review(bigint, text) to service_role;
+
+grant execute on function public.log_round(jsonb), public.daily_stats(int), public.commons_board(), public.submit_star(jsonb), public.community_moments(timestamptz) to anon, authenticated;
