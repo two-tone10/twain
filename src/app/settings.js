@@ -82,6 +82,11 @@ export default function Settings() {
             <Text style={styles.s}>Only people you play with see it, in Matches and Circles.</Text>
           </View>
 
+          <Pressable accessibilityRole="button" onPress={() => router.push('/welcome')} style={styles.intro}>
+            <Text style={styles.introT}>✦  Replay the intro</Text>
+            <Text style={styles.v}>›</Text>
+          </Pressable>
+
           <View style={styles.block}>
             <Text style={styles.t}>Theme</Text>
             <View style={styles.chips}>
@@ -117,10 +122,6 @@ export default function Settings() {
           <Pressable accessibilityRole="button" onPress={() => router.push('/decks')} style={[styles.row, styles.block]}>
             <Text style={[styles.t, { flex: 1 }]}>Deck</Text>
             <Text style={styles.v}>{DECK[deckNow()].name} ›</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/welcome')} style={[styles.row, styles.block]}>
-            <Text style={[styles.t, { flex: 1 }]}>Replay the intro</Text>
-            <Text style={styles.v}>›</Text>
           </Pressable>
 
           <View style={[styles.block, { gap: 12, marginTop: S.md }]}>
@@ -179,5 +180,7 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   pillT: { fontFamily: F.sansMedium, fontSize: 14, color: C.ink },
   danger: { paddingVertical: 12 },
+  intro: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.accentWash },
+  introT: { fontFamily: F.serif, fontSize: 18, color: C.ink },
   dangerT: { fontFamily: F.sansMedium, fontSize: 15, color: C.danger },
 });
