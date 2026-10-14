@@ -53,19 +53,47 @@ export async function submitStar({ t, k, deck = 'everyday' }) {
   try { return await rpc('submit_star', { p: { device: await deviceId(), t, k, deck } }); } catch { return { ok: false, reason: 'offline' }; }
 }
 
-// Approved community stars, cached on the phone; new ones fetched since the last sync.
+// The star you added in the intro: sent once; if the phone was offline, tried again on the next launch.
+export const holdStar = (star) => save('keep:pendingstar', star);
+export async function sendHeldStar() {
+  const star = await load('keep:pendingstar', null);
+  if (!star) return null;
+  const r = await submitStar(star);
+  if (r?.ok || (r?.reason && r.reason !== 'offline')) await save('keep:pendingstar', null);
+  return r;
+}
+
+// Stars from players, kept on the phone and brought up to date from the server's change feed:
+// approved ones join, hidden or removed ones leave (built-in stars can be removed too), restored ones return.
+// Stars this phone reported stay gone for it whatever happens.
 export async function syncCommunity() {
-  const cached = await load('keep:community', { since: '1970-01-01T00:00:00Z', items: [] });
-  if (!commonsOn) return cached.items;
-  try {
-    const fresh = (await rpc('community_moments', { p_since: cached.since })) ?? [];
-    if (fresh.length) {
-      const seen = new Set(cached.items.map((m) => m.t));
-      const items = [...cached.items, ...fresh.filter((m) => !seen.has(m.t)).map(({ t, k }) => ({ t, k, d: 'community' }))];
-      const since = fresh.reduce((a, m) => (m.approved_at > a ? m.approved_at : a), cached.since);
-      await save('keep:community', { since, items });
-      return items;
-    }
-  } catch {}
-  return cached.items;
+  const c = await load('keep:stars', { since: '1970-01-01T00:00:00Z', items: [], gone: [] });
+  const reported = await load('keep:reported', []);
+  if (commonsOn) {
+    try {
+      const items = new Map(c.items.map((m) => [m.t, m]));
+      const gone = new Set(c.gone);
+      for (let page = 0; page < 20; page++) {
+        const fresh = (await rpc('community_changes', { p_since: c.since })) ?? [];
+        for (const m of fresh) {
+          if (m.status === 'approved') { items.set(m.t, { t: m.t, k: m.k, d: 'community' }); gone.delete(m.t); }
+          else if (m.status === 'restored') gone.delete(m.t);
+          else { items.delete(m.t); gone.add(m.t); }
+          c.since = m.changed_at;
+        }
+        if (fresh.length < 500) break;
+      }
+      c.items = [...items.values()];
+      c.gone = [...gone];
+      await save('keep:stars', c);
+    } catch {}
+  }
+  return { items: c.items.filter((m) => !reported.includes(m.t)), gone: [...c.gone, ...reported] };
+}
+
+// A new id after the server forgets this phone, so nothing new links back to the old one.
+export async function newDeviceId() {
+  device = null;
+  await save('keep:device', null);
+  return deviceId();
 }

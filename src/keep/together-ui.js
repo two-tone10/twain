@@ -1,12 +1,14 @@
-// Shared pieces for Match and Circles: a small sky, the three-pick guess, and a first-name gate.
+// Shared pieces for Match and Circles: a small sky, the three-pick guess, a first-name gate,
+// and the hide / report / remove menu for a person.
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 import { drawColored, drawConstellation, layout, record, useSkyFonts } from './sky';
 import { skyPoint } from './insight.mjs';
 import { Button } from './ui';
 import { saveMyName } from '../lib/storage';
+import { hidePerson, removeMember, reportPerson } from '../lib/safety';
 import { C, F, R, S } from '../lib/theme';
 
 // One constellation, small (no labels) or full width (with labels).
@@ -77,3 +79,43 @@ const styles = StyleSheet.create({
   gateT: { fontFamily: F.serif, fontSize: 18, color: C.ink },
   input: { borderWidth: 1, borderColor: C.line, backgroundColor: C.inset, borderRadius: R.lg, paddingVertical: 11, paddingHorizontal: 12, color: C.ink, fontFamily: F.sans, fontSize: 16 },
 });
+
+// Hide, report, or (for a circle's owner) remove someone. `where` is { match: id } or { code, mid }.
+// Hiding works both ways. Reporting also hides, and puts it in front of Keep's moderator.
+export function personMenu({ name, where, canRemove, onDone }) {
+  const done = (title, body) => Alert.alert(title, body, [{ text: 'OK', onPress: onDone }]);
+  const hide = async () => {
+    const r = await hidePerson(where);
+    if (r?.ok) done(`${name} is hidden`, 'You won’t see each other’s matches, skies or names again.');
+    else Alert.alert('Couldn’t reach Keep’s server', 'Try again in a moment.');
+  };
+  const report = async () => {
+    const r = await reportPerson(where);
+    if (r?.ok) done('Thanks for telling us', `${name} is hidden from you, and Keep’s moderator will take a look.`);
+    else Alert.alert('Couldn’t reach Keep’s server', 'Try again in a moment.');
+  };
+  const remove = () => Alert.alert(`Remove ${name}?`, 'They leave the circle and can’t rejoin with the code.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Remove', style: 'destructive', onPress: async () => {
+      const r = await removeMember(where.code, where.mid);
+      if (r?.ok) onDone?.(); else Alert.alert('Couldn’t remove them', 'Try again in a moment.');
+    } },
+  ]);
+  Alert.alert(name, null, [
+    ...(canRemove ? [{ text: 'Remove from circle', onPress: remove }] : []),
+    { text: `Hide ${name}`, onPress: hide },
+    { text: 'Report and hide', style: 'destructive', onPress: report },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
+}
+
+// The small "more" button that opens personMenu.
+export function More({ label, onPress }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={10} onPress={onPress} style={moreStyle}>
+      <Text style={moreText}>•••</Text>
+    </Pressable>
+  );
+}
+const moreStyle = { width: 32, height: 24, borderRadius: R.full, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' };
+const moreText = { fontFamily: F.sansBold, fontSize: 11, letterSpacing: 1, color: C.dim, marginTop: -2 };

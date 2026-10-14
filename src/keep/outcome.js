@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { CUT_MS, WHY } from './content.mjs';
+import { CUT_MS, WHY, fromPlayers } from './content.mjs';
 import { cutPair, soloLines } from './insight.mjs';
 import { SAID_ROUNDS as PATTERN_ROUNDS } from './readings.mjs';
 import { WHENS, askAtFor, followUp, rememberPeople, withLabel } from './plans.mjs';
@@ -164,6 +164,8 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
 
   const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null }).slice(0, 3);
   const name = skyName(g.kept);
+  // Stars other players added, kept or not, so any of them can be reported.
+  const players = useMemo(() => [...new Set([...g.kept, ...(g.gone ?? [])].map((m) => m.t))].filter(fromPlayers), [g.kept, g.gone]);
   const heroH = 210;
   const hero = useMemo(() => {
     if (!fonts) return null;
@@ -216,6 +218,11 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
         </Pressable>
       )}
       {why && <View style={{ gap: 10 }}>{lines.map((l, i) => <Reading key={i} line={l} />)}</View>}
+      {players.length > 0 && (
+        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/report', params: { stars: JSON.stringify(players) } })} style={{ alignItems: 'center' }}>
+          <Text style={styles.small}>{players.length === 1 ? 'One star' : `${players.length} stars`} this round came from players · Report ›</Text>
+        </Pressable>
+      )}
       {played != null && played < PATTERN_ROUNDS && (
         <View style={{ alignItems: 'center', gap: 8 }}>
           <View style={styles.slots}>

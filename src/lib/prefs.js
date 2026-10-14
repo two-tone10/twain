@@ -33,6 +33,10 @@ export const saveSaid = (ks) => save('keep:said', ks);
 export const loadOnboarded = () => load('keep:onboarded', false);
 export const setOnboarded = () => save('keep:onboarded', true);
 
+// The star you typed in the intro. It falls in your next drop, once.
+export const loadFirstStar = () => load('keep:firststar', null);
+export const saveFirstStar = (star) => save('keep:firststar', star);
+
 // Opt-in "tonight's star" nudge at 6pm.
 export const loadEvening = () => load('keep:evening', false);
 export const saveEvening = (on) => save('keep:evening', on);

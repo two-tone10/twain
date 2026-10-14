@@ -1,4 +1,5 @@
 // One circle: today (who's played, the circle's sky, guessing each other) and the week's awards.
+// Each member can be hidden or reported; the circle's owner can also remove them.
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -6,10 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { dailyDeal, dayNumber } from '../../keep/fun.mjs';
 import { tableSummary } from '../../keep/table.mjs';
 import { toItems, weekAwards } from '../../keep/together.mjs';
-import { GroupSky, GuessPicker, NameGate, personColor } from '../../keep/together-ui';
+import { GroupSky, GuessPicker, More, NameGate, personColor, personMenu } from '../../keep/together-ui';
 import { Button, Eyebrow, Reading, StillSky, goHome } from '../../keep/ui';
 import { circleDay, circleGuess, circlePreview, circleLink, circleWeek, joinCircle, leaveCircle, myCircles } from '../../lib/together';
 import { loadMyName } from '../../lib/storage';
+import { reportCircle } from '../../lib/safety';
 import { C, F, R, S } from '../../lib/theme';
 
 export default function Circle() {
@@ -71,6 +73,11 @@ export default function Circle() {
     { text: 'Leave', style: 'destructive', onPress: async () => { await leaveCircle(code); router.replace('/circles'); } },
   ]);
 
+  const reportName = () => Alert.alert(`Report “${title}”?`, 'Keep’s moderator will look at the circle’s name.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Report', style: 'destructive', onPress: async () => { const r = await reportCircle(code); Alert.alert(r?.ok ? 'Thanks for telling us' : 'Couldn’t reach Keep’s server', r?.ok ? 'We’ll take a look.' : 'Try again in a moment.'); } },
+  ]);
+
   return (
     <Shell>
       <Eyebrow>{title} · today</Eyebrow>
@@ -90,7 +97,10 @@ export default function Circle() {
       <View style={styles.block}>
         {members.map((m) => (
           <View key={m.mid} style={styles.member}>
-            <Text style={styles.mName}>{m.me ? `${m.name} (you)` : m.name}</Text>
+            <View style={styles.who}>
+              <Text style={styles.mName}>{m.me ? `${m.name} (you)` : m.name}</Text>
+              {!m.me && <More label={`Hide, report or remove ${m.name}`} onPress={() => personMenu({ name: m.name, where: { code, mid: m.mid }, canRemove: info.owner, onDone: load })} />}
+            </View>
             {m.me ? <Text style={styles.meta}>{m.played ? 'played' : 'not yet'}</Text>
               : !m.played ? <Text style={styles.meta}>not yet</Text>
               : !info.played ? <Text style={styles.meta}>played · hidden</Text>
@@ -111,6 +121,7 @@ export default function Circle() {
         <Text style={styles.meta}>Code {code}</Text>
         <Button label="Invite someone" onPress={invite} />
         <Button ghost small label="Leave circle" onPress={leave} />
+        {!info.owner && <Pressable accessibilityRole="button" onPress={reportName} style={{ alignItems: 'center', paddingVertical: 4 }}><Text style={styles.meta}>Report this circle’s name</Text></Pressable>}
       </View>
     </Shell>
   );
@@ -134,6 +145,7 @@ const styles = StyleSheet.create({
   sub: { fontFamily: F.sans, fontSize: 14, lineHeight: 20, color: C.dim },
   block: { gap: 4, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   member: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9 },
+  who: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   mName: { fontFamily: F.serif, fontSize: 17, color: C.ink },
   meta: { fontFamily: F.sans, fontSize: 13, color: C.faint },
   guess: { fontFamily: F.sansMedium, fontSize: 13, color: C.gold },

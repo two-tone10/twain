@@ -33,6 +33,14 @@ test('a match card from the server view, and pairs over time', () => {
   assert.deepEqual([p[0].who, p[0].matches, p[0].sync, p[0].iRead, p[0].iReadOf, p[0].meet], ['Maya', 2, 50, 4, 6, 'company']);
 });
 
+test('people are grouped by who they are, not their name, with the latest match to play again from', () => {
+  const mine = { kept: ['Game night'], whys: '3' };
+  const sam = (id, pid) => ({ id, mine, other: { name: 'Sam', pid, kept: ['Game night'], whys: '3' } });
+  const p = pairs([sam('NEW1', 'p1'), sam('OLD1', 'p1'), sam('X', 'p2')]);
+  assert.equal(p.length, 2);
+  assert.deepEqual(p.map((x) => [x.pid, x.who, x.last, x.matches]), [['p1', 'Sam', 'NEW1', 2], ['p2', 'Sam', 'X', 1]]);
+});
+
 test('weekly awards for a circle', () => {
   const members = [{ mid: 'a', name: 'Mom' }, { mid: 'b', name: 'Lila' }, { mid: 'c', name: 'Grandpa' }];
   const plays = [

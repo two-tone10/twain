@@ -18,10 +18,20 @@ import { C } from '../lib/theme';
 
 /* ---------------- the drop ---------------- */
 
+// The star someone typed in the intro takes the place of one of its why's moments, early in the round.
+function withMine(cards, mine, rng) {
+  if (!mine) return cards;
+  const rest = cards.filter((c) => c.t !== mine.t);
+  const i = rest.findIndex((c) => c.k === mine.k);
+  if (i >= 0) rest.splice(i, 1);
+  rest.splice(2 + Math.floor(rng() * 4), 0, { t: mine.t, k: mine.k });
+  return rest;
+}
+
 // The falling field. Drop uses it as is; Pass it around gives it a shorter round, each player's deck and name;
 // the daily passes its own pre-dealt `cards` and a seeded `rng` so every phone sees the same sky.
 // One comet may streak across each round, and quick catches in a row build a combo. Both score speed only.
-export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards, rng = Math.random }) {
+export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards, mine, rng = Math.random }) {
   const { width: W, height: H } = useWindowDimensions();
   const ins = useSafeAreaInsets();
   const fonts = useSkyFonts();
@@ -36,7 +46,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
   const G = useRef(null);
   const game = () => (G.current ??= {
     deckKey: cards ? 'everyday' : deck ?? deckNow(),
-    deck: cards ? cards.map((c) => ({ ...c })) : deal(SOLO_PER_WHY, rng, deck ?? deckNow()),
+    deck: cards ? cards.map((c) => ({ ...c })) : withMine(deal(SOLO_PER_WHY, rng, deck ?? deckNow()), mine, rng),
     live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], pops: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H),
     calm: calmNow() ? 1.5 : 1,
     cometAt: rng() < 0.8 ? roundMs * (0.25 + rng() * 0.5) : null, combo: 0, bestCombo: 0, lastCatch: -1e9, comets: 0,

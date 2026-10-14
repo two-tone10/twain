@@ -1,4 +1,5 @@
-// Match: play a drop and send it to one friend. Your matches and the people you match with.
+// Match: play a drop and send it to one friend, or play again with someone you've matched (no link needed).
+// Your matches, the people you match with, and drops friends have sent you.
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -8,7 +9,7 @@ import { recordRound } from '../../keep/records';
 import { matchCard, matchDeal, matchFieldRng, newSeed, pairs } from '../../keep/together.mjs';
 import { NameGate } from '../../keep/together-ui';
 import { Button, Eyebrow, StillSky, goHome } from '../../keep/ui';
-import { commonsOn, createMatch, myMatches } from '../../lib/together';
+import { commonsOn, createMatch, myMatches, rematch } from '../../lib/together';
 import { loadMyName } from '../../lib/storage';
 import { deckNow } from '../../lib/prefs';
 import { C, F, S } from '../../lib/theme';
@@ -18,6 +19,7 @@ export default function Matches() {
   const [name, setName] = useState(undefined);
   const [seed, setSeed] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [again, setAgain] = useState(null);
 
   useFocusEffect(useCallback(() => { myMatches().then(setViews); loadMyName().then(setName); }, []));
 
@@ -27,12 +29,13 @@ export default function Matches() {
       <Field
         cards={matchDeal(seed, deck)}
         rng={matchFieldRng(seed)}
-        who="Match"
+        who={again ? `Match · ${again.who}` : 'Match'}
         onDone={async (g) => {
           setBusy(true);
           const extra = await recordRound({ ...g, deckKey: deck }, 'challenge');
-          const v = await createMatch(seed, deck, g.kept, extra.speed);
+          const v = again ? await rematch(again.last, seed, deck, g.kept, extra.speed) : await createMatch(seed, deck, g.kept, extra.speed);
           setSeed(null);
+          setAgain(null);
           setBusy(false);
           if (v?.id) router.push(`/match/${v.id}`);
         }}
@@ -54,7 +57,7 @@ export default function Matches() {
           {!commonsOn ? <Text style={styles.sub}>Matches need a connection to Keep’s server. Try again later.</Text> : (
             <>
               <NameGate name={name} onSaved={setName} />
-              {name ? <Button label={busy ? 'Sending…' : 'Start a match'} disabled={busy} onPress={() => setSeed(newSeed())} /> : null}
+              {name ? <Button label={busy ? 'Sending…' : 'Start a match'} disabled={busy} onPress={() => { setAgain(null); setSeed(newSeed()); }} /> : null}
             </>
           )}
 
@@ -67,7 +70,10 @@ export default function Matches() {
                     <Text style={styles.who}>{p.who}</Text>
                     <Text style={styles.meta}>{p.matches} {p.matches === 1 ? 'match' : 'matches'}{p.iReadOf ? ` · you read ${p.iRead} of ${p.iReadOf}` : ''}{p.meet ? ` · meet on ${p.meet}` : ''}</Text>
                   </View>
-                  <Text style={styles.sync}>{p.sync}%</Text>
+                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                    <Text style={styles.sync}>{p.sync}%</Text>
+                    {name ? <Pressable accessibilityRole="button" hitSlop={8} onPress={() => { setAgain(p); setSeed(newSeed()); }}><Text style={styles.again}>Play again ›</Text></Pressable> : null}
+                  </View>
                 </View>
               ))}
             </View>
@@ -78,11 +84,12 @@ export default function Matches() {
               <Eyebrow>Matches</Eyebrow>
               {list.map((v) => {
                 const c = matchCard(v);
-                const status = !v.other ? (v.expired ? 'Ended without a reply' : 'Waiting for a friend') : !v.mine?.guesses ? 'Your turn to guess' : c.sync != null ? `${c.sync}% in sync` : '';
+                const status = !v.mine ? 'Sent you a drop' : !v.other ? (v.expired ? 'Ended without a reply' : v.to ? 'Waiting' : 'Waiting for a friend') : !v.mine.guesses ? 'Your turn to guess' : c.sync != null ? `${c.sync}% in sync` : '';
+                const yours = status === 'Your turn to guess' || status === 'Sent you a drop';
                 return (
                   <Pressable key={v.id} accessibilityRole="button" onPress={() => router.push(`/match/${v.id}`)} style={styles.row}>
-                    <Text style={styles.rowT}>{v.other?.name ?? 'Sent'}</Text>
-                    <Text style={[styles.meta, status === 'Your turn to guess' && { color: C.gold }]}>{status} ›</Text>
+                    <Text style={styles.rowT}>{v.other?.name ?? v.to ?? 'Sent'}</Text>
+                    <Text style={[styles.meta, yours && { color: C.gold }]}>{status} ›</Text>
                   </Pressable>
                 );
               })}
@@ -106,6 +113,7 @@ const styles = StyleSheet.create({
   who: { fontFamily: F.serif, fontSize: 18, color: C.ink },
   meta: { fontFamily: F.sans, fontSize: 12, color: C.faint },
   sync: { fontFamily: F.serifRegular, fontSize: 26, color: C.gold },
+  again: { fontFamily: F.sansMedium, fontSize: 12, color: C.gold },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 11, borderTopWidth: 1, borderTopColor: C.line },
   rowT: { fontFamily: F.serif, fontSize: 16, color: C.ink },
 });

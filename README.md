@@ -27,7 +27,7 @@ A solo round ends with **make one real**: a short reading (and how many rounds u
 
 Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names tonight's plan or the newest open moment.
 
-**First launch** (`/welcome`): three slow stars instead of instructions, named the moment you tap one; then the one slow question (which two whys matter most to you?); then a deck.
+**First launch** (`/welcome`): eight scenes over one moving sky. The name; three slow stars to catch; what you get (play, your sky, one for real, together); the one slow question (which two whys matter most to you?); your star (something you love, which falls in your first drop and, if ticked, goes to the commons review queue); a deck; the daily reminder; go. Replay it from You.
 
 **Your sky** layers every constellation like a star chart, then reads:
 - **What you said · what you grab**: the two whys you named on day one against your fastest grabs (after five drops).
@@ -35,6 +35,10 @@ Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names toni
 - What you hold (Drift), and a moment you keep catching but haven't done.
 
 **Your seven** (`/why/<key>`): tap any colored why anywhere for its page: what it means, your history with it, a few moments to try.
+
+**You** (`/settings`, the round button on Home): name, theme, calm mode, reminder, deck, the intro again, and Your data: what stays on the phone, what goes to the server, back up / restore, delete my data from the server, erase everything.
+
+**Safety**: stars from players can be reported (results screen, commons board); people in Matches and Circles can be hidden or reported (••• by their name); circle owners can remove members; you can play again with someone without a link. Moderation is at lipurposefe.com/keep/admin. See `docs/commons-api.md`.
 
 **Decks**: Everyday, Campus, New city, With kids, Next chapter, Young (kids about 7–13). Same seven whys, moments written for a life stage. Chosen on first launch or from the home screen.
 
@@ -93,7 +97,7 @@ Each deck should have at least 4 moments per why; short ones borrow from Everyda
 - `src/keep/outcome.js`: final cut and results, shared by Drop and the slow drop
 - `src/keep/notify.js`: opt-in local reminders (expo-notifications)
 - `src/keep/ui.js`: buttons, readings, why chips, the still sky behind screens
-- `src/app/`: Expo Router screens: `(tabs)/index` (Play), `(tabs)/sky`, `(tabs)/list`, `play` (Drop), `drift`, `slow`, `duel`, `welcome`, `decks`, `why/[k]`, `pass`
+- `src/app/`: Expo Router screens: `(tabs)/index` (Play), `(tabs)/sky`, `(tabs)/list`, `play` (Drop), `drift`, `slow`, `match`, `circles`, `welcome`, `decks`, `why/[k]`
 - `src/lib/prefs.js`: deck (also held in memory for dealing), the two whys you said, onboarding, the evening nudge
 - `portal/library.html`: source of the library portal artifact
 - `scripts/sync-library.mjs`: portal export to `library.mjs`

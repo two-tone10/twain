@@ -29,13 +29,18 @@ export const DECK = Object.fromEntries(DECKS.map((d) => [d.key, d]));
 export const EXTRA = [];
 export const setExtra = (items) => { EXTRA.length = 0; EXTRA.push(...items); };
 export const deckReady = (key) => key !== 'community' || EXTRA.length >= 14;
+// Stars the moderator took down (built-in or from players), plus any this phone reported. Never dealt.
+export const GONE = new Set();
+export const setGone = (texts) => { GONE.clear(); for (const t of texts) GONE.add(t); };
+// A star a player added, rather than one from Keep's own library.
+export const fromPlayers = (t) => EXTRA.some((m) => m.t === t);
 
 // Texts by why for one deck. A deck that's short on a why borrows from Everyday so rounds stay even.
 export function poolFor(deck = 'everyday', min = 4) {
   const by = Object.fromEntries(WHYS.map((w) => [w.key, []]));
-  for (const m of [...LIBRARY, ...EXTRA]) if (m.d === deck && by[m.k]) by[m.k].push(m.t);
+  for (const m of [...LIBRARY, ...EXTRA]) if (m.d === deck && by[m.k] && !GONE.has(m.t)) by[m.k].push(m.t);
   if (deck !== 'everyday') {
-    for (const m of LIBRARY) if (m.d === 'everyday' && by[m.k].length < min && !by[m.k].includes(m.t)) by[m.k].push(m.t);
+    for (const m of LIBRARY) if (m.d === 'everyday' && by[m.k].length < min && !by[m.k].includes(m.t) && !GONE.has(m.t)) by[m.k].push(m.t);
   }
   return by;
 }

@@ -52,7 +52,15 @@ None of the content questions apply (no violence, mature themes, gambling, or un
   - **User Content → Other User Content** (submitted stars; in Match and Circles, the kept moments and the first name the player types): not linked to the user's identity, not used for tracking. Purpose: App Functionality.
 
 ## Review notes
-No login is needed. Tap “Today’s drop”, then tap falling stars to keep five. The friend-challenge links open lipurposefe.com/keep/play. Submitted stars are moderated before anyone else sees them.
+No login is needed. Tap “Today’s drop”, then tap falling stars to keep five. The friend-challenge links open lipurposefe.com/keep/play.
+
+Player content and safety (Guideline 1.2):
+- There is no chat or free text between players. The only player content is short "stars" (moments, 30 characters), first names, and circle names.
+- Stars are reviewed by a person before anyone else sees them. Names and circle names are filtered for links and offensive words.
+- Report: after a drop, “Stars this round came from players · Report”, or press and hold one on the commons board. Three reports hide a star for everyone until reviewed.
+- Report and block a person: the ••• button next to their name on a Match or in a Circle (“Hide”, or “Report and hide”). Hiding works both ways. Circle owners can remove members.
+- Removed content disappears from every phone the next time the app opens. Contact: hello@lipurposefe.com.
+- Data deletion: tap the round “You” button on Home → “Delete my data from Keep’s server” or “Erase everything”. There are no accounts.
 
 ## Screenshots (6.9", 1320 × 2868)
 1. Home: “Keep.” and Today’s drop.

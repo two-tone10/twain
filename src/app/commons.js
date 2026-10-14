@@ -1,11 +1,13 @@
 // The commons: what everyone's keeping this week, the stars almost nobody catches, and what's rising.
+// Stars players added can be reported from here.
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WHY } from '../keep/content.mjs';
+import { WHY, fromPlayers } from '../keep/content.mjs';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
 import { commonsBoard, commonsOn } from '../lib/commons';
+import { reportStar } from '../lib/safety';
 import { C, F, R, S } from '../lib/theme';
 
 const SECTIONS = [
@@ -16,7 +18,12 @@ const SECTIONS = [
 
 export default function Commons() {
   const [board, setBoard] = useState(undefined);
+  const [gone, setGone] = useState([]);
   useEffect(() => { commonsBoard().then(setBoard); }, []);
+  const report = (t) => Alert.alert(`Report “${t}”?`, 'It stops falling for you, and Keep’s moderator will take a look.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Report', style: 'destructive', onPress: () => { setGone((g) => [...g, t]); reportStar(t); } },
+  ]);
 
   return (
     <View style={styles.root}>
@@ -33,19 +40,20 @@ export default function Commons() {
             <View key={key} style={styles.block}>
               <Eyebrow>{title}</Eyebrow>
               <Text style={styles.sub}>{sub}</Text>
-              {board[key].map((m) => (
-                <View key={m.t} style={styles.row}>
+              {board[key].filter((m) => !gone.includes(m.t)).map((m) => (
+                <Pressable key={m.t} disabled={!fromPlayers(m.t)} accessibilityHint={fromPlayers(m.t) ? 'Long press to report' : undefined} onLongPress={() => report(m.t)} style={styles.row}>
                   <View style={[styles.dot, { backgroundColor: WHY[m.k]?.color ?? C.gold }]} />
                   <View style={{ flex: 1, gap: 4 }}>
                     <Text style={styles.t}>{m.t}</Text>
                     <View style={styles.track}><View style={[styles.bar, { width: `${Math.max(2, Math.min(100, Number(m.pct)))}%`, backgroundColor: WHY[m.k]?.color ?? C.gold }]} /></View>
                   </View>
                   <Text style={styles.pct}>{Math.round(Number(m.pct))}%</Text>
-                </View>
+                </Pressable>
               ))}
             </View>
           ) : null))}
           <View style={styles.block}>
+            <Text style={styles.sub}>Press and hold a star players added to report it.</Text>
             <Text style={styles.sub}>Got a moment that belongs up there?</Text>
             <Button label="Add a star" onPress={() => router.push('/add-star')} disabled={!commonsOn} />
           </View>

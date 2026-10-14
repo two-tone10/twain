@@ -1,6 +1,6 @@
 // Kept: everything you've done and everything you've reached for, from your first round on.
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
@@ -12,8 +12,6 @@ import { shareCard } from '../../keep/share';
 import { drawBands, drawCaps, drawDot, record, useSkyFonts } from '../../keep/sky';
 import { Eyebrow, Reading, StillSky, WhyChip } from '../../keep/ui';
 import { loadList, loadNamed, loadRounds } from '../../lib/storage';
-import { exportBackup, pickBackup, restoreBackup } from '../../lib/backup';
-import { loadPrefs } from '../../lib/prefs';
 import { C, F, R, S } from '../../lib/theme';
 
 const KEYS = WHYS.map((w) => w.key);
@@ -31,18 +29,6 @@ export default function Kept() {
     Promise.all([loadRounds(), loadList(), loadNamed()]).then(([rounds, list, named]) => setData({ rounds, list, named, now: Date.now() }));
   }, []);
   useFocusEffect(reload);
-
-  const backUp = () => exportBackup().catch(() => Alert.alert('Couldn’t make a backup', 'Try again in a moment.'));
-  const restore = async () => {
-    let b;
-    try { b = await pickBackup(); } catch { Alert.alert('That isn’t a Keep backup', 'Pick a file named “Keep backup” that you saved from this screen.'); return; }
-    if (!b) return;
-    const when = new Date(b.at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-    Alert.alert('Restore this backup?', `From ${when}: ${b.done} moments done, ${b.rounds} rounds. It replaces what’s on this phone now.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Restore', style: 'destructive', onPress: async () => { await restoreBackup(b.backup); await loadPrefs(); reload(); } },
-    ]);
-  };
 
   const cw = W - 2 * S.lg;
   const tl = useMemo(() => (data ? timeline(data.list, data.now, weeks) : null), [data, weeks]);
@@ -234,15 +220,6 @@ export default function Kept() {
                 ))}
               </View>
             ))}
-          </View>
-          {/* 5. keeping it safe */}
-          <View style={styles.block}>
-            <Eyebrow>Keep it safe</Eyebrow>
-            <Text style={styles.empty}>All of this lives on this phone. Save a copy now and then.</Text>
-            <View style={styles.safeRow}>
-              <Pressable accessibilityRole="button" onPress={backUp} style={styles.safeB}><Text style={styles.safeT}>Back up</Text></Pressable>
-              <Pressable accessibilityRole="button" onPress={restore} style={styles.safeB}><Text style={styles.safeT}>Restore from a backup</Text></Pressable>
-            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
