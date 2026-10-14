@@ -29,7 +29,7 @@ MORE WAYS TO PLAY
 • Slow drop: one drop across a whole day.
 • Decks for where you are: Everyday, Campus, New city, With kids, Next chapter, Young.
 
-No account. No ads. Your sky stays on your phone.
+No account. No ads. Your history stays on your phone; only anonymous counts of what gets kept are shared.
 
 ## Keywords (100)
 self discovery,reflection,habits,mindful,daily,constellation,stars,personality,journal,game,values
