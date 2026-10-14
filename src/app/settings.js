@@ -1,6 +1,7 @@
-// The few settings Keep has: calm mode, the daily reminder, your name for challenges, the deck, and the intro again.
+// You: your name, how Keep looks and reminds you, your deck, the intro again, and your data:
+// what stays on the phone, what goes to Keep's server, backups, and deleting it all.
 import { useEffect, useState } from 'react';
-import { DevSettings, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, DevSettings, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +9,10 @@ import { DECK } from '../keep/content.mjs';
 import { dayNumber } from '../keep/fun.mjs';
 import { allowReminders, scheduleDailyDrop } from '../keep/notify';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
-import { calmNow, deckNow, loadDailyHour, saveDailyHour, setCalm } from '../lib/prefs';
+import { calmNow, deckNow, loadDailyHour, loadPrefs, saveDailyHour, setCalm } from '../lib/prefs';
+import { exportBackup, pickBackup, restoreBackup } from '../lib/backup';
+import { commonsOn } from '../lib/commons';
+import { eraseEverything, forgetMe } from '../lib/safety';
 import { loadDailies, loadMyName, saveMyName } from '../lib/storage';
 import { C, F, R, S, THEME_CHOICE, THEME_CHOICES, saveThemeChoice } from '../lib/theme';
 
@@ -28,6 +32,35 @@ export default function Settings() {
     Updates.reloadAsync().catch(() => DevSettings.reload());
   };
 
+  const restart = () => Updates.reloadAsync().catch(() => DevSettings.reload());
+
+  const backUp = () => exportBackup().catch(() => Alert.alert('Couldn’t make a backup', 'Try again in a moment.'));
+  const restore = async () => {
+    let b;
+    try { b = await pickBackup(); } catch { Alert.alert('That isn’t a Keep backup', 'Pick a file named “Keep backup” that you saved from here.'); return; }
+    if (!b) return;
+    const when = new Date(b.at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    Alert.alert('Restore this backup?', `From ${when}: ${b.done} moments done, ${b.rounds} rounds. It replaces what’s on this phone now.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Restore', style: 'destructive', onPress: async () => { await restoreBackup(b.backup); await loadPrefs(); restart(); } },
+    ]);
+  };
+
+  const forget = () => Alert.alert('Delete your data from Keep’s server?', 'Your counts, matches, circles and any stars waiting for review are deleted. You’ll leave your circles. Everything on this phone stays.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: async () => {
+      const ok = await forgetMe();
+      Alert.alert(ok ? 'Done' : 'Couldn’t reach Keep’s server', ok ? 'Keep’s server has nothing from this phone now.' : 'Nothing was deleted. Try again when you’re online.');
+    } },
+  ]);
+  const erase = () => Alert.alert('Erase everything?', 'Your skies, list, plans and notes on this phone, and everything on Keep’s server. This can’t be undone. Back up first if you might want it.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Erase', style: 'destructive', onPress: async () => {
+      if (await eraseEverything()) restart();
+      else Alert.alert('Couldn’t reach Keep’s server', 'Nothing was erased. Try again when you’re online.');
+    } },
+  ]);
+
   const pickHour = async (h) => {
     if (h != null && !(await allowReminders())) { setNote('Notifications are off for Keep in Settings.'); return; }
     setHour(h);
@@ -42,9 +75,14 @@ export default function Settings() {
       <StillSky />
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-          <Eyebrow>Settings</Eyebrow>
+          <Eyebrow>You</Eyebrow>
 
-          <View style={[styles.block, { borderTopWidth: 0, paddingTop: 0 }]}>
+          <View style={{ gap: 8 }}>
+            <TextInput value={name} onChangeText={setName} onEndEditing={() => saveMyName(name.trim())} placeholder="Your first name" placeholderTextColor={C.faint} maxLength={20} style={styles.name} returnKeyType="done" accessibilityLabel="Your first name" />
+            <Text style={styles.s}>Only people you play with see it, in Matches and Circles.</Text>
+          </View>
+
+          <View style={styles.block}>
             <Text style={styles.t}>Theme</Text>
             <View style={styles.chips}>
               {THEME_CHOICES.map(([k, l]) => (
@@ -76,12 +114,6 @@ export default function Settings() {
             {note ? <Text style={styles.s}>{note}</Text> : null}
           </View>
 
-          <View style={styles.block}>
-            <Text style={styles.t}>Your name</Text>
-            <Text style={styles.s}>Shown to friends when you send a drop.</Text>
-            <TextInput value={name} onChangeText={setName} onEndEditing={() => saveMyName(name.trim())} placeholder="First name" placeholderTextColor={C.faint} maxLength={20} style={styles.input} returnKeyType="done" />
-          </View>
-
           <Pressable accessibilityRole="button" onPress={() => router.push('/decks')} style={[styles.row, styles.block]}>
             <Text style={[styles.t, { flex: 1 }]}>Deck</Text>
             <Text style={styles.v}>{DECK[deckNow()].name} ›</Text>
@@ -90,6 +122,34 @@ export default function Settings() {
             <Text style={[styles.t, { flex: 1 }]}>Replay the intro</Text>
             <Text style={styles.v}>›</Text>
           </Pressable>
+
+          <View style={[styles.block, { gap: 12, marginTop: S.md }]}>
+            <Eyebrow>Your data</Eyebrow>
+            <Text style={styles.h}>No account. No email. No phone number.</Text>
+            <View style={styles.data}>
+              <Text style={styles.dataK}>ON THIS PHONE ONLY</Text>
+              <Text style={styles.dataV}>Your skies, sign, list, plans and notes.</Text>
+            </View>
+            <View style={styles.data}>
+              <Text style={styles.dataK}>ON KEEP’S SERVER</Text>
+              <Text style={styles.dataV}>Which stars get caught, counted without names. Your first name and kept stars in Matches and Circles. Stars you send up.</Text>
+              <Text style={styles.s}>All of it is tied to a random code made on this phone, not to you.</Text>
+            </View>
+            <View style={styles.pills}>
+              <Pressable accessibilityRole="button" onPress={backUp} style={styles.pill}><Text style={styles.pillT}>Back up</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={restore} style={styles.pill}><Text style={styles.pillT}>Restore</Text></Pressable>
+            </View>
+            <Text style={styles.s}>A backup is a file you keep (Files, iCloud Drive, AirDrop). Keep never sees it.</Text>
+            {commonsOn && (
+              <Pressable accessibilityRole="button" onPress={forget} style={styles.danger}>
+                <Text style={styles.dangerT}>Delete my data from Keep’s server</Text>
+              </Pressable>
+            )}
+            <Pressable accessibilityRole="button" onPress={erase} style={styles.danger}>
+              <Text style={styles.dangerT}>Erase everything</Text>
+            </Pressable>
+            <Text style={styles.s}>Privacy policy: lipurposefe.com/keep/privacy{'\n'}Questions or a problem: hello@lipurposefe.com</Text>
+          </View>
 
           <Button ghost label="Done" onPress={() => { saveMyName(name.trim()); goHome(); }} />
         </ScrollView>
@@ -110,5 +170,14 @@ const styles = StyleSheet.create({
   chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   chipOn: { backgroundColor: C.ink, borderColor: C.ink },
   chipT: { fontFamily: F.sansMedium, fontSize: 13, color: C.dim },
-  input: { borderWidth: 1, borderColor: C.line, backgroundColor: C.card, borderRadius: R.lg, paddingVertical: 12, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
+  name: { fontFamily: F.serifRegular, fontSize: 30, color: C.ink, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: C.line },
+  h: { fontFamily: F.serifRegular, fontSize: 22, lineHeight: 28, color: C.ink },
+  data: { gap: 4 },
+  dataK: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
+  dataV: { fontFamily: F.sans, fontSize: 15, lineHeight: 21, color: C.dim },
+  pills: { flexDirection: 'row', gap: 8 },
+  pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
+  pillT: { fontFamily: F.sansMedium, fontSize: 14, color: C.ink },
+  danger: { paddingVertical: 12 },
+  dangerT: { fontFamily: F.sansMedium, fontSize: 15, color: C.danger },
 });

@@ -58,3 +58,19 @@ Nobody sees another person's sky until they've played the same stars. Device ids
 - `create_match(p {device, name, seed, deck, kept[], whys, speed})`, `get_match(p_id, p_device)`, `play_match(p {id, device, name, kept[], whys, speed})` (second player only), `guess_match(p {id, device, guesses[3]})`, `my_matches(p_device)`. A match is two players, open for 7 days. Its stars come from `matchDeal(seed, deck)` in `src/keep/together.mjs`.
 - `create_circle(p {device, name, circle_name})`, `join_circle(p {code, device, name})`, `leave_circle(p {code, device})`, `my_circles(p_device)`, `circle_preview(p_code)`.
 - `log_daily(p {device, name, day, kept[], whys, speed})` on every daily. `circle_day(p_code, p_device, p_day)`, `circle_guess(p {code, device, day, mid, guesses[3]})`, `circle_week(p_code, p_device, p_today)` (only days the caller played; the app computes the awards).
+
+## Safety (migration 20261015100000_keep_safety.sql)
+
+Anonymous-callable, all with `p.device`:
+- `community_changes(p_since timestamptz) → [{ t, k, status, changed_at }]`: replaces `community_moments` in the app. `approved` joins the Community deck, `hidden`/`removed` leave every deck (built-in stars too), `restored` brings a built-in star back. Page with the last `changed_at`.
+- `report(p { kind: 'star', t } | { kind: 'person', match } | { kind: 'person', code, mid } | { kind: 'circle', code }) → { ok }`: 20 a day per phone. Reporting a person also hides them. Three reports hide an approved star.
+- `hide_person(p { match } | { code, mid }) → { ok }`: both ways. Hidden people drop out of `my_matches`, `get_match`, `circle_day`, `circle_week`, guesses and rematches.
+- `remove_member(p { code, mid }) → { ok }`: the circle's owner only; the removed member can't rejoin.
+- `rematch(p { id, seed, deck, name, kept, whys, speed }) → match view`: a new match sent to the other player of match `id`. It waits in their `my_matches`; only they can play it.
+- `forget_me(p {}) → { ok }`: deletes everything tied to the device. Approved stars stay, unlinked. The app then makes a new device id.
+
+`match_view` adds `to` (who a rematch was sent to) and `other.pid` (a per-viewer id for the other player). `circle_day` adds `owner`, and `owner` per member.
+
+Names and circle names pass a trigger: links or offensive words, or a muted device, become "A friend" / "A circle".
+
+Service role only (the admin page): `keep_admin_reports()`, `keep_admin_act(kind, target, action)` (star: remove|keep, person: mute|dismiss, circle: rename|delete|dismiss), and `keep_admin_review` now also takes `removed`.

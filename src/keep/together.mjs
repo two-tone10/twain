@@ -63,10 +63,10 @@ export function pairs(views) {
   const by = {};
   for (const v of views) {
     if (!v?.mine || !v.other?.kept) continue;
-    const who = v.other.name;
-    (by[who] ||= []).push(v);
+    (by[v.other.pid ?? v.other.name] ||= []).push(v);
   }
-  return Object.entries(by).map(([who, vs]) => {
+  return Object.entries(by).map(([pid, vs]) => {
+    const who = vs[0].other.name;
     const cards = vs.map(matchCard);
     const syncs = cards.map((c) => c.sync);
     const avg = Math.round(syncs.reduce((a, b) => a + b, 0) / syncs.length);
@@ -76,7 +76,7 @@ export function pairs(views) {
     const cm = counts(cards.flatMap((c) => c.mine)), ct = counts(cards.flatMap((c) => c.theirs));
     const meet = WHYS.map((w) => w.key).filter((k) => cm[k] && ct[k]).sort((a, b) => cm[b] + ct[b] - cm[a] - ct[a])[0] ?? null;
     const differ = WHYS.map((w) => w.key).filter((k) => (cm[k] ?? 0) + (ct[k] ?? 0) > 0).sort((a, b) => Math.abs((ct[b] ?? 0) - (cm[b] ?? 0)) - Math.abs((ct[a] ?? 0) - (cm[a] ?? 0))).slice(0, 2);
-    return { who, matches: vs.length, sync: avg, trend, iRead: read.reduce((s, c) => s + c.iRead, 0), iReadOf: read.length * 3, meet, differ };
+    return { pid, who, last: vs[0].id, matches: vs.length, sync: avg, trend, iRead: read.reduce((s, c) => s + c.iRead, 0), iReadOf: read.length * 3, meet, differ };
   }).sort((a, b) => b.matches - a.matches);
 }
 

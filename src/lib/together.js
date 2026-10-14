@@ -16,6 +16,7 @@ export const createMatch = (seed, deck, kept, speed) => safe(async () => rpc('cr
 export const getMatch = (id) => safe(async () => rpc('get_match', { p_id: id, p_device: await deviceId() }));
 export const playMatch = (id, kept, speed) => safe(async () => rpc('play_match', { p: { ...(await me()), id, ...play(kept, speed) } }));
 export const guessMatch = (id, guesses) => safe(async () => rpc('guess_match', { p: { device: await deviceId(), id, guesses } }));
+export const rematch = (id, seed, deck, kept, speed) => safe(async () => rpc('rematch', { p: { ...(await me()), id, seed, deck, ...play(kept, speed) } }));
 export const myMatches = () => safe(async () => rpc('my_matches', { p_device: await deviceId() }), []);
 
 export const createCircle = (circleName) => safe(async () => rpc('create_circle', { p: { ...(await me()), circle_name: circleName } }));

@@ -7,7 +7,8 @@ import { drawConstellation, drawGhosts, drawStar, drawTrail, layout } from '../.
 import { ALL_NAMES, dayNumber } from '../../keep/fun.mjs';
 import { BASKET, DECK } from '../../keep/content.mjs';
 import { fmtLeft, slowSnapshot } from '../../keep/modes.mjs';
-import { loadDailies, loadNamed, loadSkies, loadSlow } from '../../lib/storage';
+import { loadDailies, loadMyName, loadNamed, loadSkies, loadSlow } from '../../lib/storage';
+import { commonsOn, myMatches } from '../../lib/together';
 import { deckNow, loadOnboarded } from '../../lib/prefs';
 import { C, F, R, S } from '../../lib/theme';
 
@@ -25,6 +26,8 @@ export default function Play() {
   const [doneToday, setDoneToday] = useState(false);
   const [now, setNow] = useState(0);
   const [deck, setDeckName] = useState(deckNow());
+  const [me, setMe] = useState('');
+  const [waiting, setWaiting] = useState(0);
 
   // First launch goes through the three stars.
   useEffect(() => { loadOnboarded().then((done) => { if (!done) router.push('/welcome'); }); }, []);
@@ -40,6 +43,9 @@ export default function Play() {
       loadSlow().then(setSlow);
       loadNamed().then((n) => setNamed(Object.keys(n).length));
       loadDailies().then((d) => setDoneToday(!!d[dayNumber()]));
+      loadMyName().then(setMe);
+      // Drops friends sent you that you haven't played yet.
+      if (commonsOn) myMatches().then((vs) => setWaiting((vs ?? []).filter((v) => v && !v.mine && !v.expired).length));
     }, []),
   );
 
@@ -67,9 +73,11 @@ export default function Play() {
       <SafeAreaView edges={['top']} style={styles.wrap}>
         <View style={styles.top}>
           <Pressable accessibilityRole="button" accessibilityLabel={`${named} of ${ALL_NAMES} skies named`} onPress={() => router.navigate('/kept')} hitSlop={8}>
-            <Text style={styles.topT}>✦ {named}<Text style={{ color: C.faint }}>/{ALL_NAMES}</Text></Text>
+            <Text style={styles.topT}>✦ {named}<Text style={{ color: C.faint }}>/{ALL_NAMES}</Text>{day ? `   DAILY #${day} ${doneToday ? '✓' : '· READY'}` : ''}</Text>
           </Pressable>
-          {day ? <Text style={styles.topT}>DAILY #{day} {doneToday ? '✓' : '· READY'}</Text> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="You: settings and your data" onPress={() => router.push('/settings')} hitSlop={10} style={styles.you}>
+            <Text style={styles.youT}>{me.trim() ? me.trim()[0].toUpperCase() : '◦'}</Text>
+          </Pressable>
         </View>
         <View style={{ flex: 1 }} />
         <Text style={styles.title}>Keep<Text style={{ color: C.gold }}>.</Text></Text>
@@ -91,14 +99,17 @@ export default function Play() {
           ) : null}
           <View style={styles.modes}>
             {MODES.map(([g, label, to]) => (
-              <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} onPress={() => router.push(to)} style={styles.mode}>
-                <View style={styles.icon}><Text style={styles.glyph}>{g}</Text></View>
+              <Pressable key={label} accessibilityRole="button" accessibilityLabel={label === 'Match' && waiting ? `Match, ${waiting} waiting for you` : label} onPress={() => router.push(to)} style={styles.mode}>
+                <View style={styles.icon}>
+                  <Text style={styles.glyph}>{g}</Text>
+                  {label === 'Match' && waiting > 0 ? <View style={styles.badge} /> : null}
+                </View>
                 <Text style={styles.modeT}>{label.toUpperCase()}</Text>
               </Pressable>
             ))}
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Settings. Deck: ${DECK[deck].name}`} onPress={() => router.push('/settings')} style={styles.alt}>
-            <Text style={styles.deckT}>{DECK[deck].name.toUpperCase()} DECK  ·  SETTINGS</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Deck: ${DECK[deck].name}`} onPress={() => router.push('/decks')} style={styles.alt}>
+            <Text style={styles.deckT}>{DECK[deck].name.toUpperCase()} DECK ›</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -109,7 +120,10 @@ export default function Play() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.sky0 },
   wrap: { flex: 1, paddingHorizontal: S.lg, paddingBottom: S.sm, gap: S.sm },
-  top: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: S.sm },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: S.sm },
+  you: { width: 34, height: 34, borderRadius: R.full, borderWidth: 1, borderColor: C.gold, alignItems: 'center', justifyContent: 'center' },
+  youT: { fontFamily: F.serifRegular, fontSize: 17, color: C.gold },
+  badge: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: C.gold, borderWidth: 2, borderColor: C.sky0 },
   topT: { fontFamily: F.sansMedium, fontSize: 11, letterSpacing: 2.5, color: C.gold },
   title: { fontFamily: F.serifRegular, fontSize: 84, lineHeight: 92, color: C.ink, textAlign: 'center' },
   tag: { fontFamily: F.sans, fontSize: 16, color: C.dim, textAlign: 'center' },
