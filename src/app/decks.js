@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
   deck: { paddingVertical: 13, paddingHorizontal: 14, borderRadius: R.lg, borderWidth: 1, borderColor: C.line, gap: 2 },
-  deckOn: { borderColor: C.gold, backgroundColor: 'rgba(216,180,106,0.08)' },
+  deckOn: { borderColor: C.gold, backgroundColor: C.accentWash },
   name: { fontFamily: F.serif, fontSize: 17, color: C.ink },
   who: { fontFamily: F.sans, fontSize: 13, color: C.faint },
   sample: { gap: 2, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },

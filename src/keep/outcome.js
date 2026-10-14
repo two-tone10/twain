@@ -230,7 +230,7 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
       <View style={{ flex: 1 }} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
         {onNext ? <Button label="Make one real" onPress={onNext} style={{ flex: 1 }} /> : null}
-        {g.kept.length > 0 && <Button ghost={!!onNext} label={g.day ? 'Send' : '↗'} onPress={share} style={onNext ? { width: g.day ? 92 : 58, paddingHorizontal: 0 } : { flex: 1 }} />}
+        {g.kept.length > 0 && <Button ghost={!!onNext} label={g.day ? 'Send' : 'Share'} onPress={share} style={onNext ? { width: 92, paddingHorizontal: 0 } : { flex: 1 }} />}
       </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Button ghost label="Home" onPress={() => goHome()} style={{ flex: 1 }} />
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 35, color: C.ink },
   sub: { fontFamily: F.sans, fontSize: 15, color: C.dim },
   cutWrap: { flex: 1, paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.sm },
-  cutCard: { borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(255,230,166,0.35)', backgroundColor: 'rgba(20,25,56,0.8)', paddingVertical: 28, paddingHorizontal: S.md, alignItems: 'center', gap: 12 },
+  cutCard: { borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.card, paddingVertical: 28, paddingHorizontal: S.md, alignItems: 'center', gap: 12 },
   cutWin: { borderColor: C.glow, shadowColor: C.glow, shadowOpacity: 0.6, shadowRadius: 18, transform: [{ scale: 1.03 }] },
   cutLose: { opacity: 0.15, transform: [{ scale: 0.95 }] },
   cutStar: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.star, shadowColor: C.glow, shadowOpacity: 1, shadowRadius: 8 },
@@ -324,20 +324,20 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line },
   rowText: { flex: 1, fontFamily: F.serif, fontSize: 16, color: C.ink },
   cutTag: { fontFamily: F.sansMedium, fontSize: 9, letterSpacing: 2, color: C.gold },
-  bring: { gap: 10, borderTopWidth: 1, borderTopColor: 'rgba(216,180,106,0.3)', paddingTop: S.md },
+  bring: { gap: 10, borderTopWidth: 1, borderTopColor: C.cardLine, paddingTop: S.md },
   small: { fontFamily: F.sans, fontSize: 13, color: C.faint },
   picks: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pick: { paddingVertical: 9, paddingHorizontal: 14, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   pickOn: { borderColor: C.ink, backgroundColor: C.ink },
   pickText: { fontFamily: F.sansMedium, fontSize: 14, color: C.dim },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, paddingHorizontal: 16, borderRadius: R.xl, borderWidth: 1, borderColor: C.line, backgroundColor: 'rgba(20,25,56,0.75)' },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15, paddingHorizontal: 16, borderRadius: R.xl, borderWidth: 1, borderColor: C.line, backgroundColor: C.card },
   cardOn: { borderColor: C.glow },
   cardText: { flex: 1, fontFamily: F.serif, fontSize: 19, color: C.ink },
   dot: { width: 9, height: 9, borderRadius: 5 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   label: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.faint, marginTop: 4 },
-  input: { borderWidth: 1, borderColor: C.gold, backgroundColor: 'rgba(20,25,56,0.8)', borderRadius: R.lg, paddingVertical: 12, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
-  plan: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  input: { borderWidth: 1, borderColor: C.gold, backgroundColor: C.card, borderRadius: R.lg, paddingVertical: 12, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
+  plan: { gap: 4, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.card },
   planWhen: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
   planText: { fontFamily: F.serifRegular, fontSize: 26, lineHeight: 31, color: C.ink },
   rare: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   share: { fontFamily: F.sansMedium, fontSize: 13, letterSpacing: 1, color: C.gold },
   progress: { gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   slots: { flexDirection: 'row', gap: 10 },
-  slot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(239,230,214,0.4)', borderStyle: 'dashed' },
+  slot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1, borderColor: C.ghost, borderStyle: 'dashed' },
   slotOn: { backgroundColor: C.star, borderWidth: 0, shadowColor: C.glow, shadowOpacity: 1, shadowRadius: 5 },
   tallyItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   tallyN: { fontFamily: F.sansMedium, fontSize: 12, color: C.ink },

@@ -9,6 +9,7 @@ import { dailyDeal, dayNumber, fieldRng, fmtSpeed, shareText, skyName } from '..
 import { Field } from '../keep/field';
 import { Outcome } from '../keep/outcome';
 import { recordRound } from '../keep/records';
+import { logDaily } from '../lib/together';
 import { shareCard } from '../keep/share';
 import { drawConstellation, layout, record, useSkyFonts } from '../keep/sky';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
@@ -26,6 +27,7 @@ export default function Daily() {
   const finished = async (g) => {
     const extra = await recordRound(g, 'daily', day);
     await saveDaily(day, { kept: g.kept.map(({ t, k }) => ({ t, k })), speed: extra.speed, at: Date.now() });
+    logDaily(day, g.kept, extra.speed);
     setGame({ ...g, ...extra, day });
   };
 
@@ -63,6 +65,7 @@ function DailyDone({ day, result }) {
           <View style={styles.dots}>{kept.map((m, i) => <View key={i} style={[styles.dot, { backgroundColor: WHY[m.k].color }]} />)}</View>
         </View>
         <Text style={styles.sub}>New stars tomorrow.</Text>
+        {commonsOn && <Button small ghost label="Your circles" onPress={() => router.push('/circles')} />}
         {commonsOn && <Button small ghost label="See everyone’s sky" onPress={() => router.push('/commons')} />}
         <View style={{ flex: 1 }} />
         {kept.length > 0 && <Button label="Send to a friend" onPress={send} />}

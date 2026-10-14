@@ -22,7 +22,7 @@ function frame(c, fonts, eyebrow) {
   const bg = Skia.Paint();
   bg.setShader(Skia.Shader.MakeLinearGradient({ x: 0, y: 0 }, { x: 0, y: PH }, [Skia.Color(C.sky1), Skia.Color(C.sky0)], null, TileMode.Clamp));
   c.drawRect(Skia.XYWHRect(0, 0, PW, PH), bg);
-  const dot = paint('#e8ecff');
+  const dot = paint(C.field);
   for (const s of starfield(PW, PH, 140)) { dot.setAlphaf(0.12 + s.r * 0.22); c.drawCircle(s.x, s.y, s.r * 0.8, dot); }
   drawCaps(c, eyebrow, 22, 34, fonts.caps, C.gold, 1, 'left', 2.2);
   const ink = paint(C.ink);

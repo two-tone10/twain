@@ -20,8 +20,8 @@ The repo is still named `twain` (the earlier card game lives in git history on `
 - **Drop** (45 seconds): moments fall and speed up. Keep five. Once full, tap a falling star to swap one out (time slows while you choose). Ends with a **final cut**: your fastest and slowest grab, six seconds to keep one.
 - **Drift**: ten stars, already yours, start fading one by one. Touch and hold to keep a star lit (multi-touch, so two thumbs can protect two). Reads what you protect, not what you grab.
 - **Slow drop**: one drop across a whole day. Fourteen moments over twelve hours, each taking about three hours to fall. Opt-in local reminders, never more than one every two hours. `/slow?quick=1` squeezes the day into about five minutes for testing.
-- **Pass it around** (2–6 players, one phone): each person plays a 30-second drop on their own deck and hands the phone on. Then one family sky (a color per person, shared stars glowing), what you share and who went their own way, and one thing to do together, which goes on the List.
-- **Duel**: two thumbs, one phone laid flat. Stars streak across the middle with labels printed both ways up. A late second tap on a just-taken star counts as a fight.
+- **Match** (`/match`): play a drop and send it to a friend; they catch the same stars on their own phone, you each guess three of the other's five, and a match card shows overlap, sync, who read whom and speed. Matches with the same person add up.
+- **Circles** (`/circles`): small groups that play the daily together. Skies show once you've played; guess each other's three; a weekly card with closest pair, best reader, most surprising and the circle's why.
 
 A solo round ends with **make one real**: a short reading (and how many rounds until your first pattern), then "Which of these could actually happen this week?", then two taps for when (tonight, this weekend, this week, someday) and with whom. The plan goes on the List with its day, and Keep asks how it went at the right time (next morning, Sunday evening, end of week; someday never asks). "Just playing today" is always a full answer.
 
@@ -38,7 +38,6 @@ Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names toni
 
 **Decks**: Everyday, Campus, New city, With kids, Next chapter, Young (kids about 7–13). Same seven whys, moments written for a life stage. Chosen on first launch or from the home screen.
 
-**Duel** ends with **read each other**: before the reveal, each player guesses the other's strongest why.
 
 ## Who it's for, and what it does
 
@@ -84,8 +83,9 @@ Each deck should have at least 4 moments per why; short ones borrow from Everyda
 - `src/keep/content.mjs`: the seven whys, decks, per-deck pools, round constants
 - `src/keep/library.mjs`: every moment (generated, see above)
 - `src/keep/plans.mjs`: when/with labels, check-in timing and wording for plans (pure, tested)
-- `src/keep/table.mjs`: Pass it around summary: shared moments, solo picks, what to do together (pure, tested)
-- `src/keep/field.js`: the falling field, shared by Drop and Pass it around
+- `src/keep/table.mjs`: group summary (shared moments, solo picks), used for a circle's sky (pure, tested)
+- `src/keep/together.mjs`: Match and Circles scoring: sync, match card, pairs over time, weekly awards (pure, tested)
+- `src/keep/field.js`: the falling field, shared by Drop, the daily, challenges and matches
 - `src/keep/readings.mjs`: said vs grabbed, reach · do · glad, one why's stats, duel guesses, the evening nudge (pure, tested)
 - `src/keep/insight.mjs`: dealing, headlines, solo and duel readings, sky positions (pure, tested)
 - `src/keep/modes.mjs`: Drift, slow drop, reminders, list check-ins, Your sky readings (pure, tested)

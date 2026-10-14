@@ -181,7 +181,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
     drawCaps(c, hint, 22, geo.hudY, f.caps, C.gold, 0.95);
     if (g.combo >= 2 && g.gt - g.lastCatch <= COMBO_MS) drawCaps(c, `×${g.combo}`, W - 60, geo.hudY, f.caps, C.glow, 1, 'left', 2);
     const left = Math.max(0, 1 - g.gt / roundMs);
-    drawBar(c, 22, geo.hudY + 9, W - 44, 2, 'rgba(239,230,214,0.12)');
+    drawBar(c, 22, geo.hudY + 9, W - 44, 2, C.line);
     drawBar(c, 22, geo.hudY + 9, (W - 44) * left, 2, C.gold);
 
     // your sky

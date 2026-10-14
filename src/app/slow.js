@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   intro: { flex: 1, paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
   sub: { fontFamily: F.sans, fontSize: 16, lineHeight: 23, color: C.dim },
-  remind: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: 'rgba(20,25,56,0.75)' },
+  remind: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.card },
   remindTitle: { fontFamily: F.sansMedium, fontSize: 15, color: C.ink },
   remindSub: { fontFamily: F.sans, fontSize: 12, lineHeight: 17, color: C.faint },
   quit: { position: 'absolute', right: 18, width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },

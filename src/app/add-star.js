@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   wrap: { flexGrow: 1, paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
   sub: { fontFamily: F.sans, fontSize: 13, lineHeight: 19, color: C.faint },
-  input: { borderWidth: 1, borderColor: C.gold, backgroundColor: 'rgba(20,25,56,0.8)', borderRadius: R.lg, paddingVertical: 14, paddingHorizontal: 14, color: C.ink, fontFamily: F.serif, fontSize: 20 },
+  input: { borderWidth: 1, borderColor: C.gold, backgroundColor: C.card, borderRadius: R.lg, paddingVertical: 14, paddingHorizontal: 14, color: C.ink, fontFamily: F.serif, fontSize: 20 },
   count: { fontFamily: F.sans, fontSize: 12, color: C.faint, textAlign: 'right', marginTop: -8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingVertical: 8, paddingHorizontal: 13, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
