@@ -100,7 +100,7 @@ export default function Kept() {
             <Text style={styles.h2}>{t.done ? 'Look at all you did.' : 'It all lands here.'}</Text>
             {t.done > 0 && (
               <Pressable accessibilityRole="button" accessibilityLabel="Share your totals" hitSlop={10} onPress={shareStats}>
-                <Text style={styles.shareT}>↗</Text>
+                <Text style={styles.shareT}>SHARE</Text>
               </Pressable>
             )}
           </View>
@@ -121,7 +121,7 @@ export default function Kept() {
                 <Text style={styles.weekT}>{week.rounds} {week.rounds === 1 ? 'sky' : 'skies'} · {week.done} done{week.glad ? ` · ${week.glad} glad` : ''}</Text>
                 {weekNames[0] ? <Text style={styles.weekN}>{weekNames.slice(0, 2).join(', ')}</Text> : null}
               </View>
-              <Text style={styles.shareT}>↗</Text>
+              <Text style={styles.shareT}>SHARE</Text>
             </Pressable>
           )}
 
@@ -142,7 +142,7 @@ export default function Kept() {
                 <Canvas style={{ width: cw, height: 230 }}>
                   <Picture picture={timePic} />
                 </Canvas>
-                <Text style={styles.note}>Gold ring: glad you did.</Text>
+                <Text style={styles.note}>Ringed: glad you did.</Text>
               </>
             ) : (
               <Text style={styles.empty}>{weeks && t.done ? 'Nothing in the last four weeks.' : 'Tick something off your list and its star lands here.'}</Text>
@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink, flex: 1 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  shareT: { fontFamily: F.sansMedium, fontSize: 22, color: C.gold },
-  week: { flexDirection: 'row', alignItems: 'center', padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  shareT: { fontFamily: F.sansMedium, fontSize: 11, letterSpacing: 2, color: C.gold },
+  week: { flexDirection: 'row', alignItems: 'center', padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.card },
   weekL: { fontFamily: F.sansMedium, fontSize: 9, letterSpacing: 2.5, color: C.gold },
   weekT: { fontFamily: F.serif, fontSize: 18, color: C.ink },
   weekN: { fontFamily: F.serifItalic, fontSize: 14, color: C.dim },

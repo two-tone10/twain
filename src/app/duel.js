@@ -169,7 +169,7 @@ function Arena({ names, onDone }) {
     const g = game(), f = fonts;
     drawSky(c, W, H, g.field, g.gt);
     const left = Math.max(0, 1 - g.gt / ROUND_MS), bw = (W - 44) * left;
-    drawBar(c, 22, geo.cy - 0.5, W - 44, 1, 'rgba(239,230,214,0.12)');
+    drawBar(c, 22, geo.cy - 0.5, W - 44, 1, C.line);
     drawBar(c, W / 2 - bw / 2, geo.cy - 0.5, bw, 1, C.gold);
 
     half(c, 0);
@@ -314,11 +314,11 @@ const styles = StyleSheet.create({
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
   sub: { fontFamily: F.sans, fontSize: 15, lineHeight: 21, color: C.dim },
   label: { fontFamily: F.sans, fontSize: 12, color: C.dim },
-  input: { borderWidth: 1, borderColor: C.line, backgroundColor: 'rgba(20,25,56,0.8)', borderRadius: R.lg, paddingVertical: 13, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
+  input: { borderWidth: 1, borderColor: C.line, backgroundColor: C.card, borderRadius: R.lg, paddingVertical: 13, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
   results: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   row: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.line, gap: 3 },
   rowText: { fontFamily: F.serif, fontSize: 14, color: C.ink },
-  reads: { gap: 8, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: 'rgba(216,180,106,0.45)', backgroundColor: 'rgba(20,25,56,0.8)' },
+  reads: { gap: 8, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.card },
   guess: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: R.lg, borderWidth: 1, borderColor: C.line },
   guessName: { fontFamily: F.serif, fontSize: 17, color: C.ink },
   dot: { width: 10, height: 10, borderRadius: 5 },

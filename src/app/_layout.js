@@ -22,7 +22,7 @@ export default function Layout() {
   const ready = fonts && prefs;
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style={C.light ? 'dark' : 'light'} />
       {ready ? (
         <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: C.sky0 } }} />
       ) : (

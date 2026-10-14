@@ -54,7 +54,7 @@ export default function Welcome() {
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: on }}
                     onPress={() => { Haptics.selectionAsync(); setSaid((s) => (on ? s.filter((k) => k !== w.key) : [...s, w.key].slice(-2))); }}
-                    style={[styles.why, on && { borderColor: w.color, backgroundColor: 'rgba(20,25,56,0.9)' }]}
+                    style={[styles.why, on && { borderColor: w.color, backgroundColor: C.card }]}
                   >
                     <View style={[styles.dot, { backgroundColor: w.color }, !on && { opacity: 0.55 }]} />
                     <View style={{ flex: 1, gap: 2 }}>
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   whyName: { fontFamily: F.serif, fontSize: 17, color: C.ink },
   whyAbout: { fontFamily: F.sans, fontSize: 13, lineHeight: 18, color: C.faint },
   deck: { paddingVertical: 13, paddingHorizontal: 14, borderRadius: R.lg, borderWidth: 1, borderColor: C.line, gap: 2 },
-  deckOn: { borderColor: C.gold, backgroundColor: 'rgba(216,180,106,0.08)' },
+  deckOn: { borderColor: C.gold, backgroundColor: C.accentWash },
   deckName: { fontFamily: F.serif, fontSize: 17, color: C.ink },
   skip: { alignItems: 'center', paddingVertical: 6 },
   skipText: { fontFamily: F.sans, fontSize: 14, color: C.faint },

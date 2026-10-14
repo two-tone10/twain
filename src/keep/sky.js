@@ -57,17 +57,17 @@ function paints() {
   if (!P) {
     P = {
       fill: make('#000'),
-      dot: make('#e8ecff'),
+      dot: make(C.field),
       star: make(C.star),
       glow: make(C.glow, { blur: 7 }),
       halo: make(C.glow, { blur: 16 }),
       trail: make(C.glow, { stroke: 2 }),
       line: make(C.gold, { stroke: 1 }),
       ink: make(C.ink),
-      shade: make('#05060f', { blur: 5 }),
+      shade: make(C.shade, { blur: 5 }),
       gold: make(C.gold),
-      faint: make('#e8ecff'),
-      dash: make('#e8ecff', { stroke: 1 }),
+      faint: make(C.field),
+      dash: make(C.field, { stroke: 1 }),
     };
     P.dash.setPathEffect(Skia.PathEffect.MakeDash([2, 4], 0));
   }

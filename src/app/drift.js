@@ -99,7 +99,7 @@ function Field({ onDone }) {
     const held = new Set(Object.values(g.holds));
     drawCaps(c, g.gt < 2500 ? 'Touch and hold a star to keep it lit' : 'Hold what you want to keep', 22, ins.top + 20, f.caps, C.gold, 0.95);
     const left = Math.max(0, 1 - g.gt / DRIFT.roundMs);
-    drawBar(c, 22, ins.top + 29, W - 44, 2, 'rgba(239,230,214,0.12)');
+    drawBar(c, 22, ins.top + 29, W - 44, 2, C.line);
     drawBar(c, 22, ins.top + 29, (W - 44) * left, 2, C.gold);
     for (const [i, s] of g.stars.entries()) {
       if (s.goneAt != null) {
@@ -209,9 +209,9 @@ const styles = StyleSheet.create({
   lit: { width: 8, height: 8, borderRadius: 4, borderWidth: 1, borderColor: C.faint },
   litOn: { backgroundColor: C.star, borderColor: C.glow, shadowColor: C.glow, shadowOpacity: 1, shadowRadius: 6 },
   rowText: { flex: 1, fontFamily: F.serif, fontSize: 16, color: C.ink },
-  bring: { gap: 10, borderTopWidth: 1, borderTopColor: 'rgba(216,180,106,0.3)', paddingTop: S.md },
+  bring: { gap: 10, borderTopWidth: 1, borderTopColor: C.cardLine, paddingTop: S.md },
   picks: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pick: { paddingVertical: 8, paddingHorizontal: 13, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
-  pickOn: { borderColor: C.gold, backgroundColor: 'rgba(216,180,106,0.12)' },
+  pickOn: { borderColor: C.gold, backgroundColor: C.accentWash },
   pickText: { fontFamily: F.serif, fontSize: 15, color: C.dim },
 });
