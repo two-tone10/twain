@@ -6,7 +6,7 @@ const URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 export const commonsOn = !!(URL && KEY);
 
-async function rpc(name, body) {
+export async function rpc(name, body) {
   if (!commonsOn) return null;
   const res = await fetch(`${URL}/rest/v1/rpc/${name}`, {
     method: 'POST',
@@ -20,7 +20,7 @@ async function rpc(name, body) {
 
 // A random id made on this phone, so the server can rate-limit without knowing who anyone is.
 let device = null;
-async function deviceId() {
+export async function deviceId() {
   if (device) return device;
   device = await load('keep:device', null);
   if (!device) {

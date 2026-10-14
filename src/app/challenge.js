@@ -8,6 +8,7 @@ import { WHY } from '../keep/content.mjs';
 import { dailyDeal, dayNumber, decodeChallenge, fieldRng, fmtSpeed, overlap, shareText, skyName } from '../keep/fun.mjs';
 import { Field } from '../keep/field';
 import { recordRound } from '../keep/records';
+import { logDaily } from '../lib/together';
 import { shareCard } from '../keep/share';
 import { drawConstellation, layout, record, useSkyFonts } from '../keep/sky';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
@@ -27,7 +28,7 @@ export default function Challenge() {
   const finished = async (g) => {
     const extra = await recordRound(g, 'challenge', c.day);
     const result = { kept: g.kept.map(({ t, k }) => ({ t, k })), speed: extra.speed, at: Date.now() };
-    if (c.day === dayNumber()) await saveDaily(c.day, result);
+    if (c.day === dayNumber()) { await saveDaily(c.day, result); logDaily(c.day, g.kept, extra.speed); }
     setMine(result);
     setPlaying(false);
   };

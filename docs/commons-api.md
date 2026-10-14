@@ -50,3 +50,11 @@ A password-protected page at `lipurposefe.com/keep/admin` (same Basic-auth middl
 ## Privacy (for the App Store form)
 
 Collected: Usage Data (which anonymous moments were kept), not linked to identity, not used for tracking. User Content (submitted stars), not linked to identity. Nothing else.
+
+## Match and Circles (migration 20261014120000_keep_together.sql)
+
+Nobody sees another person's sky until they've played the same stars. Device ids never leave the server; circle members appear as a short hash (`mid`).
+
+- `create_match(p {device, name, seed, deck, kept[], whys, speed})`, `get_match(p_id, p_device)`, `play_match(p {id, device, name, kept[], whys, speed})` (second player only), `guess_match(p {id, device, guesses[3]})`, `my_matches(p_device)`. A match is two players, open for 7 days. Its stars come from `matchDeal(seed, deck)` in `src/keep/together.mjs`.
+- `create_circle(p {device, name, circle_name})`, `join_circle(p {code, device, name})`, `leave_circle(p {code, device})`, `my_circles(p_device)`, `circle_preview(p_code)`.
+- `log_daily(p {device, name, day, kept[], whys, speed})` on every daily. `circle_day(p_code, p_device, p_day)`, `circle_guess(p {code, device, day, mid, guesses[3]})`, `circle_week(p_code, p_device, p_today)` (only days the caller played; the app computes the awards).

@@ -19,10 +19,10 @@ Every round draws a constellation with a name, like The Restless Hearth or The Q
 THEN MAKE ONE REAL
 After a round, pick one star that could happen this week, say when and with whom, and Keep checks back to ask how it went. Over time, Kept shows everything you’ve done, who was there, and how what you reach for changes.
 
-PLAY TOGETHER
-• Today’s drop: the same stars for everyone, once a day. Send yours to a friend and see how close your skies land.
-• Pass it around: two to six people, one phone, then one family sky and something to do together.
-• Duel: two thumbs, one phone, race for the same stars.
+PLAY TOGETHER, ON YOUR OWN PHONES
+• Today’s drop: the same stars for everyone, once a day.
+• Match: send a drop to a friend. You each catch the same stars, guess three of the other’s five, and see how in sync you are.
+• Circles: a small group that plays the daily together. See each other’s skies once you’ve played, guess each other’s picks, and get a weekly card.
 
 MORE WAYS TO PLAY
 • Drift: hold on to the stars you won’t let fade.
@@ -49,7 +49,7 @@ None of the content questions apply (no violence, mature themes, gambling, or un
 - Before the commons is on: **Data Not Collected.**
 - Once the commons is on:
   - **Usage Data → Product Interaction**: not linked to the user, not used for tracking. Purpose: App Functionality.
-  - **User Content → Other User Content** (submitted stars): not linked to the user, not used for tracking. Purpose: App Functionality.
+  - **User Content → Other User Content** (submitted stars; in Match and Circles, the kept moments and the first name the player types): not linked to the user's identity, not used for tracking. Purpose: App Functionality.
 
 ## Review notes
 No login is needed. Tap “Today’s drop”, then tap falling stars to keep five. The friend-challenge links open lipurposefe.com/keep/play. Submitted stars are moderated before anyone else sees them.

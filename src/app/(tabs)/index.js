@@ -14,8 +14,8 @@ import { C, F, R, S } from '../../lib/theme';
 const MODES = [
   ['◷', 'Slow', '/slow'],
   ['◐', 'Drift', '/drift'],
-  ['⇄', 'Duel', '/duel'],
-  ['◎', 'Pass', '/pass'],
+  ['⇄', 'Match', '/match'],
+  ['◎', 'Circles', '/circles'],
 ];
 
 export default function Play() {
