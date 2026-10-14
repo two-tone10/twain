@@ -1,4 +1,4 @@
-// The few settings Keep has: calm mode, the daily reminder, your name for challenges, and the deck.
+// The few settings Keep has: calm mode, the daily reminder, your name for challenges, the deck, and the intro again.
 import { useEffect, useState } from 'react';
 import { DevSettings, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as Updates from 'expo-updates';
@@ -85,6 +85,10 @@ export default function Settings() {
           <Pressable accessibilityRole="button" onPress={() => router.push('/decks')} style={[styles.row, styles.block]}>
             <Text style={[styles.t, { flex: 1 }]}>Deck</Text>
             <Text style={styles.v}>{DECK[deckNow()].name} ›</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/welcome')} style={[styles.row, styles.block]}>
+            <Text style={[styles.t, { flex: 1 }]}>Replay the intro</Text>
+            <Text style={styles.v}>›</Text>
           </Pressable>
 
           <Button ghost label="Done" onPress={() => { saveMyName(name.trim()); goHome(); }} />

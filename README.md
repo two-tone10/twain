@@ -27,7 +27,7 @@ A solo round ends with **make one real**: a short reading (and how many rounds u
 
 Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names tonight's plan or the newest open moment.
 
-**First launch** (`/welcome`): three slow stars instead of instructions, named the moment you tap one; then the one slow question (which two whys matter most to you?); then a deck.
+**First launch** (`/welcome`): eight scenes over one moving sky. The name; three slow stars to catch; what you get (play, your sky, one for real, together); the one slow question (which two whys matter most to you?); your star (something you love, which falls in your first drop and, if ticked, goes to the commons review queue); a deck; the daily reminder; go. Replay it from Settings.
 
 **Your sky** layers every constellation like a star chart, then reads:
 - **What you said · what you grab**: the two whys you named on day one against your fastest grabs (after five drops).
@@ -93,7 +93,7 @@ Each deck should have at least 4 moments per why; short ones borrow from Everyda
 - `src/keep/outcome.js`: final cut and results, shared by Drop and the slow drop
 - `src/keep/notify.js`: opt-in local reminders (expo-notifications)
 - `src/keep/ui.js`: buttons, readings, why chips, the still sky behind screens
-- `src/app/`: Expo Router screens: `(tabs)/index` (Play), `(tabs)/sky`, `(tabs)/list`, `play` (Drop), `drift`, `slow`, `duel`, `welcome`, `decks`, `why/[k]`, `pass`
+- `src/app/`: Expo Router screens: `(tabs)/index` (Play), `(tabs)/sky`, `(tabs)/list`, `play` (Drop), `drift`, `slow`, `match`, `circles`, `welcome`, `decks`, `why/[k]`
 - `src/lib/prefs.js`: deck (also held in memory for dealing), the two whys you said, onboarding, the evening nudge
 - `portal/library.html`: source of the library portal artifact
 - `scripts/sync-library.mjs`: portal export to `library.mjs`

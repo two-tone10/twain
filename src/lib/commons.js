@@ -53,6 +53,16 @@ export async function submitStar({ t, k, deck = 'everyday' }) {
   try { return await rpc('submit_star', { p: { device: await deviceId(), t, k, deck } }); } catch { return { ok: false, reason: 'offline' }; }
 }
 
+// The star you added in the intro: sent once; if the phone was offline, tried again on the next launch.
+export const holdStar = (star) => save('keep:pendingstar', star);
+export async function sendHeldStar() {
+  const star = await load('keep:pendingstar', null);
+  if (!star) return null;
+  const r = await submitStar(star);
+  if (r?.ok || (r?.reason && r.reason !== 'offline')) await save('keep:pendingstar', null);
+  return r;
+}
+
 // Approved community stars, cached on the phone; new ones fetched since the last sync.
 export async function syncCommunity() {
   const cached = await load('keep:community', { since: '1970-01-01T00:00:00Z', items: [] });

@@ -4,7 +4,7 @@ import { BlurStyle, PaintStyle, Skia, TileMode, createPicture, useFont } from '@
 import { skyPoint, spread } from './insight.mjs';
 import { C } from '../lib/theme';
 
-const FILES = {
+export const FILES = {
   serif: require('@expo-google-fonts/bodoni-moda/500Medium/BodoniModa_500Medium.ttf'),
   italic: require('@expo-google-fonts/bodoni-moda/400Regular_Italic/BodoniModa_400Regular_Italic.ttf'),
   sans: require('@expo-google-fonts/jost/500Medium/Jost_500Medium.ttf'),
@@ -136,13 +136,21 @@ export function drawStar(c, x, y, r = 4, alpha = 1, bright = false) {
   c.drawCircle(x, y, r, a(p.star, alpha));
 }
 
-export function drawTrail(c, trail, alpha = 1) {
-  const p = paints();
+const trails = {};
+export function drawTrail(c, trail, alpha = 1, color) {
+  const paint = color ? (trails[color] ||= make(color, { stroke: 2 })) : paints().trail;
   for (let i = 1; i < trail.length; i++) {
     const f = 1 - i / trail.length;
-    p.trail.setStrokeWidth(3 * f + 0.5);
-    c.drawLine(trail[i - 1][0], trail[i - 1][1], trail[i][0], trail[i][1], a(p.trail, f * 0.55 * alpha));
+    paint.setStrokeWidth(3 * f + 0.5);
+    c.drawLine(trail[i - 1][0], trail[i - 1][1], trail[i][0], trail[i][1], a(paint, f * 0.55 * alpha));
   }
+}
+
+// A star in a why's color, with a soft halo of the same color.
+const halos = {};
+export function drawGlowStar(c, x, y, r, color, alpha = 1) {
+  c.drawCircle(x, y, r * 3.4, a((halos[color] ||= make(color, { blur: 14 })), alpha * 0.55));
+  c.drawCircle(x, y, r, a(tint(color), alpha));
 }
 
 // Absolute star positions for a set of kept moments inside a box.
