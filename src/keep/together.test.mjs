@@ -54,3 +54,13 @@ test('weekly awards for a circle', () => {
   assert.equal(rows['Most surprising'], 'Grandpa');
   assert.ok(rows['Circle why']);
 });
+
+test('star names and circle names come only from the lists', async () => {
+  const { STAR_NAMES, isStarName, anotherStar, anotherCircle, isCircleName } = await import('./names.mjs');
+  assert.equal(new Set(STAR_NAMES).size, STAR_NAMES.length);
+  assert.ok(isStarName('Vega') && !isStarName('Maya') && !isStarName(''));
+  const n = anotherStar('Vega');
+  assert.ok(isStarName(n) && n !== 'Vega');
+  const c = anotherCircle('The Quiet Harbor');
+  assert.ok(isCircleName(c) && c !== 'The Quiet Harbor' && !isCircleName('Smith family'));
+});

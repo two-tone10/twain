@@ -1,5 +1,6 @@
 // First launch, in eight scenes: the name, three stars to catch, what Keep gives you, the two whys you'd name,
-// a star of your own (it falls in your first drop, and can go up to the commons), your deck, the daily reminder, go.
+// a star of your own (it falls in your first drop and stays in your drops, on this phone only), your deck,
+// the daily reminder, go.
 // One sky is drawn behind all of it; each scene adds its own moving picture.
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -8,12 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Canvas, Picture, Skia, PaintStyle, useFont } from '@shopify/react-native-skia';
 import Animated, { FadeIn, FadeInDown, FadeOut, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { DECKS, deckReady, WHYS, WHY, poolFor } from '../keep/content.mjs';
+import { DECKS, WHYS, WHY, poolFor, setOwn } from '../keep/content.mjs';
 import { EMPTY, FILES, drawCaps, drawGlowStar, drawLines, drawStar, drawTrail, ease, record, starfield, useLoop, useSkyFonts, wrap } from '../keep/sky';
 import { Button } from '../keep/ui';
 import { allowReminders, scheduleDailyDrop } from '../keep/notify';
 import { deckNow, saveDailyHour, saveFirstStar, saveSaid, setDeck, setOnboarded } from '../lib/prefs';
-import { commonsOn, holdStar, submitStar } from '../lib/commons';
+import { loadMyStars, saveMyStars } from '../lib/storage';
 import { C, F, R, S } from '../lib/theme';
 
 const SCENES = ['open', 'catch', 'gets', 'said', 'star', 'deck', 'evening', 'go'];
@@ -34,7 +35,6 @@ const GETS = [
   ['Play the same sky\nas a friend.', 'Send a drop. See how in sync you are, and how well you read each other.'],
 ];
 const HOURS = [[19, '7'], [20, '8'], [21, '9']];
-const REASONS = { too_short: 'A few more words.', too_long: 'Under 30 characters, so it fits on a star.', not_allowed: 'That one can’t go up. Try another.' };
 
 function paint(color, stroke) {
   const p = Skia.Paint();
@@ -51,7 +51,7 @@ export default function Welcome() {
   const { width: W, height: H } = useWindowDimensions();
   const ins = useSafeAreaInsets();
   const fonts = useSkyFonts();
-  const big = useFont(FILES.italic, 20);
+  const big = useFont(FILES.accent, 18);
   const pic = useSharedValue(EMPTY);
 
   const [i, setI] = useState(0);
@@ -61,9 +61,7 @@ export default function Welcome() {
   const [said, setSaid] = useState([]);
   const [text, setText] = useState('');
   const [k, setK] = useState(null);
-  const [share, setShare] = useState(true);
   const [sent, setSent] = useState(null);
-  const [err, setErr] = useState('');
   const [deck, pickDeck] = useState(deckNow());
   const [hour, setHour] = useState(20);
 
@@ -253,13 +251,10 @@ export default function Welcome() {
   const clean = text.trim();
   const sendStar = async () => {
     const g = game();
-    setErr('');
     const star = { t: clean, k };
-    if (share && commonsOn) {
-      const r = await submitStar(star);
-      if (r?.reason && REASONS[r.reason]) { setErr(REASONS[r.reason]); return; }
-      if (!r?.ok) await holdStar(star);
-    }
+    const mine = (await loadMyStars()).filter((m) => m.t !== star.t);
+    await saveMyStars([star, ...mine]);
+    setOwn([star, ...mine]);
     await saveFirstStar(star);
     g.mine = { ...star, at: g.T };
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -363,7 +358,8 @@ export default function Welcome() {
               ) : (
                 <>
                   <Text style={styles.h}>Something you{'\n'}really love doing?</Text>
-                  <TextInput value={text} onChangeText={(v) => { setText(v); setErr(''); }} placeholder="Swimming in the sea" placeholderTextColor={C.faint} maxLength={30} style={styles.input} returnKeyType="done" />
+                  <Text style={styles.sub}>It becomes one of your stars. It stays on this phone.</Text>
+                  <TextInput value={text} onChangeText={setText} placeholder="Swimming in the sea" placeholderTextColor={C.faint} maxLength={30} style={styles.input} returnKeyType="done" />
                   <Text style={styles.count}>{clean.length}/30</Text>
                   <View style={styles.chips}>
                     {WHYS.map((w) => (
@@ -372,24 +368,17 @@ export default function Welcome() {
                       </Pressable>
                     ))}
                   </View>
-                  {commonsOn && (
-                    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: share }} onPress={() => setShare((v) => !v)} style={styles.share}>
-                      <View style={[styles.box, share && { backgroundColor: C.gold }]}>{share && <Text style={styles.tick}>✓</Text>}</View>
-                      <Text style={[styles.sub, { flex: 1, fontSize: 13 }]}>Add it to everyone’s sky too. A person reads it first. No names.</Text>
-                    </Pressable>
-                  )}
-                  {err ? <Text style={styles.err}>{err}</Text> : null}
                 </>
               )}
               <View style={{ flex: 1, minHeight: S.lg }} />
               {sent ? (
                 <In d={1800} style={{ gap: S.md }}>
-                  <Text style={styles.sub}>{share && commonsOn ? 'It’ll fall in your first drop. And once it’s read, in everyone’s.' : 'It’ll fall in your first drop.'}</Text>
+                  <Text style={styles.sub}>It’ll fall in your first drop, and now and then after that. Only on this phone.</Text>
                   <Button label="Next" onPress={next} />
                 </In>
               ) : (
                 <>
-                  <Button label="Send it up" disabled={clean.length < 3 || !k} onPress={sendStar} />
+                  <Button label="Make it a star" disabled={clean.length < 3 || !k} onPress={sendStar} />
                   <Pressable onPress={next} style={styles.skip}><Text style={styles.skipT}>Skip</Text></Pressable>
                 </>
               )}
@@ -402,7 +391,7 @@ export default function Welcome() {
             <Text style={styles.k}>Your sky</Text>
             <Text style={styles.h}>Which moments should fall?</Text>
             <View style={{ gap: 6 }}>
-              {DECKS.filter((d) => deckReady(d.key)).map((d) => {
+              {DECKS.map((d) => {
                 const on = deck === d.key;
                 return (
                   <Pressable key={d.key} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { Haptics.selectionAsync(); pickDeck(d.key); }} style={[styles.deck, on && styles.deckOn]}>
@@ -455,16 +444,16 @@ const styles = StyleSheet.create({
   scene: { paddingHorizontal: S.lg + 6, gap: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
   logo: { fontFamily: F.serifRegular, fontSize: 84, lineHeight: 92, color: C.ink, textAlign: 'center' },
-  tag: { fontFamily: F.serifItalic, fontSize: 20, color: C.dim, textAlign: 'center' },
+  tag: { fontFamily: F.accentSoft, fontSize: 20, color: C.dim, textAlign: 'center' },
   tapWrap: { position: 'absolute', bottom: 40, left: 0, right: 0 },
   tap: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 3, color: C.faint, textAlign: 'center' },
   k: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 3, color: C.gold, textTransform: 'uppercase' },
   h: { fontFamily: F.serifRegular, fontSize: 34, lineHeight: 40, color: C.ink },
-  hEm: { fontFamily: F.serifItalic, color: C.gold },
+  hEm: { fontFamily: F.accent, color: C.gold },
   sub: { fontFamily: F.sans, fontSize: 15, lineHeight: 22, color: C.dim },
   bottom: { gap: S.sm + 4 },
   reading: { fontFamily: F.serifRegular, fontSize: 24, lineHeight: 31, color: C.ink },
-  em: { fontFamily: F.serifItalic, color: C.gold },
+  em: { fontFamily: F.accent, color: C.gold },
   pips: { flexDirection: 'row', gap: 8, justifyContent: 'center', paddingVertical: 4 },
   pip: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.line },
   pipOn: { width: 22, backgroundColor: C.gold },
@@ -479,10 +468,6 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip: { paddingVertical: 7, paddingHorizontal: 13, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   chipT: { fontFamily: F.sansMedium, fontSize: 13, color: C.dim },
-  share: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: C.gold, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  tick: { color: C.dark, fontSize: 13, fontFamily: F.sansBold },
-  err: { fontFamily: F.sans, fontSize: 14, color: '#e79a7a' },
   deck: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: R.xl, borderWidth: 1, borderColor: C.line },
   deckOn: { borderColor: C.gold, backgroundColor: C.accentWash },
   deckName: { fontFamily: F.serifRegular, fontSize: 18, color: C.ink },

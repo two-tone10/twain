@@ -30,9 +30,11 @@ test('the daily deals the same stars to everyone, and a new set each day', () =>
 test('challenges round-trip through a link', () => {
   const deck = dailyDeal(12);
   const kept = [deck[3], deck[7], deck[15]];
-  const q = Object.fromEntries(new URLSearchParams(encodeChallenge(12, 'Maya J', kept, 0.4)));
+  const q = Object.fromEntries(new URLSearchParams(encodeChallenge(12, 'Vega', kept, 0.4)));
   const c = decodeChallenge(q);
-  assert.equal(c.name, 'Maya J');
+  assert.equal(c.name, 'Vega');
+  // Only star names come through a link; anything typed into it reads as "A friend".
+  assert.equal(decodeChallenge({ ...q, n: 'Maya J' }).name, 'A friend');
   assert.equal(c.speed, 0.4);
   assert.equal(q.w.length, 3);
   assert.deepEqual(c.kept.map((x) => x.t), kept.map((x) => x.t));
@@ -49,4 +51,16 @@ test('rarity reads the daily stats kindly', () => {
   const txt = r.lines.map((l) => l.map((x) => (typeof x === 'string' ? x : x.em)).join(''));
   assert.deepEqual(txt, ['41% of players kept game night too.', 'Only 3% kept the symphony. You’re one of the few.']);
   assert.equal(rarity(kept, []), null);
+});
+
+test('your own stars fall in your drops, never in the daily drop or a match', async () => {
+  const { setOwn, poolFor } = await import('./content.mjs');
+  const { matchDeal } = await import('./together.mjs');
+  const before = dailyDeal(30).map((m) => m.t);
+  setOwn([{ t: 'Zz my own star', k: 'delight' }]);
+  assert.ok(poolFor('everyday', 4, true).delight.includes('Zz my own star'));
+  assert.ok(!poolFor('everyday').delight.includes('Zz my own star'));
+  assert.deepEqual(dailyDeal(30).map((m) => m.t), before);
+  assert.ok(!matchDeal(5).some((m) => m.t === 'Zz my own star'));
+  setOwn([]);
 });

@@ -70,7 +70,9 @@ export const R = { sm: 4, md: 8, lg: 12, xl: 16, full: 999 };
 export const F = {
   serif: 'BodoniModa_500Medium',
   serifRegular: 'BodoniModa_400Regular',
-  serifItalic: 'BodoniModa_400Regular_Italic',
+  // Emphasis inside sentences and soft lines: Raleway, upright. (Italic Bodoni was hard to read.)
+  accent: 'Raleway_600SemiBold',
+  accentSoft: 'Raleway_500Medium',
   sans: 'Jost_400Regular',
   sansMedium: 'Jost_500Medium',
   sansBold: 'Jost_600SemiBold',

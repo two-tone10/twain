@@ -1,11 +1,12 @@
 // You: your name, how Keep looks and reminds you, your deck, the intro again, and your data:
 // what stays on the phone, what goes to Keep's server, backups, and deleting it all.
 import { useEffect, useState } from 'react';
-import { Alert, DevSettings, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, DevSettings, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DECK } from '../keep/content.mjs';
+import { anotherStar } from '../keep/names.mjs';
 import { dayNumber } from '../keep/fun.mjs';
 import { allowReminders, scheduleDailyDrop } from '../keep/notify';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
@@ -46,7 +47,7 @@ export default function Settings() {
     ]);
   };
 
-  const forget = () => Alert.alert('Delete your data from Keep’s server?', 'Your counts, matches, circles and any stars waiting for review are deleted. You’ll leave your circles. Everything on this phone stays.', [
+  const forget = () => Alert.alert('Delete your data from Keep’s server?', 'Your counts, matches and circles are deleted. You’ll leave your circles. Everything on this phone stays.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Delete', style: 'destructive', onPress: async () => {
       const ok = await forgetMe();
@@ -78,9 +79,19 @@ export default function Settings() {
           <Eyebrow>You</Eyebrow>
 
           <View style={{ gap: 8 }}>
-            <TextInput value={name} onChangeText={setName} onEndEditing={() => saveMyName(name.trim())} placeholder="Your first name" placeholderTextColor={C.faint} maxLength={20} style={styles.name} returnKeyType="done" accessibilityLabel="Your first name" />
-            <Text style={styles.s}>Only people you play with see it, in Matches and Circles.</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{name || 'No star name yet'}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Pick a different star name" hitSlop={8} onPress={() => { const n = anotherStar(name); setName(n); saveMyName(n); }}>
+                <Text style={styles.v}>{name ? 'Another ›' : 'Pick one ›'}</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.s}>Your star name. It’s what friends see in Matches and Circles. Keep never asks for your real name.</Text>
           </View>
+
+          <Pressable accessibilityRole="button" onPress={() => router.push('/welcome')} style={styles.intro}>
+            <Text style={styles.introT}>✦  Replay the intro</Text>
+            <Text style={styles.v}>›</Text>
+          </Pressable>
 
           <View style={styles.block}>
             <Text style={styles.t}>Theme</Text>
@@ -114,13 +125,16 @@ export default function Settings() {
             {note ? <Text style={styles.s}>{note}</Text> : null}
           </View>
 
+          <Pressable accessibilityRole="button" onPress={() => router.push('/add-star')} style={[styles.row, styles.block]}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.t}>Your stars</Text>
+              <Text style={styles.s}>Moments you add. They fall only for you.</Text>
+            </View>
+            <Text style={styles.v}>›</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" onPress={() => router.push('/decks')} style={[styles.row, styles.block]}>
             <Text style={[styles.t, { flex: 1 }]}>Deck</Text>
             <Text style={styles.v}>{DECK[deckNow()].name} ›</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/welcome')} style={[styles.row, styles.block]}>
-            <Text style={[styles.t, { flex: 1 }]}>Replay the intro</Text>
-            <Text style={styles.v}>›</Text>
           </Pressable>
 
           <View style={[styles.block, { gap: 12, marginTop: S.md }]}>
@@ -128,11 +142,11 @@ export default function Settings() {
             <Text style={styles.h}>No account. No email. No phone number.</Text>
             <View style={styles.data}>
               <Text style={styles.dataK}>ON THIS PHONE ONLY</Text>
-              <Text style={styles.dataV}>Your skies, sign, list, plans and notes.</Text>
+              <Text style={styles.dataV}>Your skies, sign, list, plans, notes and your own stars.</Text>
             </View>
             <View style={styles.data}>
               <Text style={styles.dataK}>ON KEEP’S SERVER</Text>
-              <Text style={styles.dataV}>Which stars get caught, counted without names. Your first name and kept stars in Matches and Circles. Stars you send up.</Text>
+              <Text style={styles.dataV}>Which stars get caught, counted without names. Your star name and the stars you kept, in Matches and Circles you join.</Text>
               <Text style={styles.s}>All of it is tied to a random code made on this phone, not to you.</Text>
             </View>
             <View style={styles.pills}>
@@ -151,7 +165,7 @@ export default function Settings() {
             <Text style={styles.s}>Privacy policy: lipurposefe.com/keep/privacy{'\n'}Questions or a problem: hello@lipurposefe.com</Text>
           </View>
 
-          <Button ghost label="Done" onPress={() => { saveMyName(name.trim()); goHome(); }} />
+          <Button ghost label="Done" onPress={goHome} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -170,7 +184,8 @@ const styles = StyleSheet.create({
   chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   chipOn: { backgroundColor: C.ink, borderColor: C.ink },
   chipT: { fontFamily: F.sansMedium, fontSize: 13, color: C.dim },
-  name: { fontFamily: F.serifRegular, fontSize: 30, color: C.ink, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: C.line },
+  nameRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: S.md, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: C.line },
+  name: { fontFamily: F.serifRegular, fontSize: 30, color: C.ink, flexShrink: 1 },
   h: { fontFamily: F.serifRegular, fontSize: 22, lineHeight: 28, color: C.ink },
   data: { gap: 4 },
   dataK: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.gold },
@@ -179,5 +194,7 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: R.full, borderWidth: 1, borderColor: C.line },
   pillT: { fontFamily: F.sansMedium, fontSize: 14, color: C.ink },
   danger: { paddingVertical: 12 },
+  intro: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.accentWash },
+  introT: { fontFamily: F.serif, fontSize: 18, color: C.ink },
   dangerT: { fontFamily: F.sansMedium, fontSize: 15, color: C.danger },
 });

@@ -13,7 +13,7 @@ The app (`src/`) and the backend (`supabase/`) meet here. Change this file by PR
 
 Project: Supabase `keep` (ref `rmvgbonpbqrwctyrwqob`, us-east-1). Schema and functions: `supabase/migrations/`; deploy with `supabase db push -p "$(cat supabase/.db-password)"` (the password file is local and gitignored). The app reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (EAS environment `production`). Everything goes through Postgres RPCs over the REST API (`POST /rest/v1/rpc/<name>` with the anon key). The anon role gets no direct table access; RPCs are `security definer`.
 
-Why keys are `delight | setting | novelty | company | skill | taste | direction`. Deck keys are `everyday | campus | city | kids | later | young | community`. Day = Keep's daily number (`1` = 2026-10-01 local), an integer.
+Why keys are `delight | setting | novelty | company | skill | taste | direction`. Deck keys are `everyday | campus | city | kids | later`. Day = Keep's daily number (`1` = 2026-10-01 local), an integer.
 
 ## Tables (internal)
 
@@ -74,3 +74,7 @@ Anonymous-callable, all with `p.device`:
 Names and circle names pass a trigger: links or offensive words, or a muted device, become "A friend" / "A circle".
 
 Service role only (the admin page): `keep_admin_reports()`, `keep_admin_act(kind, target, action)` (star: remove|keep, person: mute|dismiss, circle: rename|delete|dismiss), and `keep_admin_review` now also takes `removed`.
+
+## No typing (migration 20261016100000_keep_no_typing.sql)
+
+Names must be star names and circle names must come from the circle lists in `src/keep/names.mjs`; anything else is stored as "A friend" / "A circle". `submit_star` is closed to the app (players' own stars stay on their phone). `community_changes` now only matters for built-in stars the moderator takes down or puts back.

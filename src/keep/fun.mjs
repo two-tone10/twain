@@ -1,4 +1,5 @@
 // The game layer: named skies, your sign, speed and combos, the daily drop, and friend challenges. Pure.
+import { isStarName } from './names.mjs';
 import { WHYS, WHY } from './content.mjs';
 import { deal } from './insight.mjs';
 
@@ -98,7 +99,7 @@ export function decodeChallenge({ d, n, k, s }) {
   const deck = dailyDeal(day);
   const kept = String(k ?? '').split('.').filter(Boolean).map(Number).filter((i) => Number.isInteger(i) && deck[i]).map((i) => deck[i]);
   const speed = parseFloat(s);
-  return { day, name: (n || 'A friend').slice(0, 24), kept, speed: Number.isFinite(speed) ? speed : null };
+  return { day, name: isStarName(n) ? n : 'A friend', kept, speed: Number.isFinite(speed) ? speed : null };
 }
 export const overlap = (a, b) => a.filter((m) => b.some((x) => x.t === m.t)).length;
 

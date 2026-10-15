@@ -11,7 +11,6 @@ import { GroupSky, GuessPicker, More, NameGate, personColor, personMenu } from '
 import { Button, Eyebrow, Reading, StillSky, goHome } from '../../keep/ui';
 import { circleDay, circleGuess, circlePreview, circleLink, circleWeek, joinCircle, leaveCircle, myCircles } from '../../lib/together';
 import { loadMyName } from '../../lib/storage';
-import { reportCircle } from '../../lib/safety';
 import { C, F, R, S } from '../../lib/theme';
 
 export default function Circle() {
@@ -73,11 +72,6 @@ export default function Circle() {
     { text: 'Leave', style: 'destructive', onPress: async () => { await leaveCircle(code); router.replace('/circles'); } },
   ]);
 
-  const reportName = () => Alert.alert(`Report “${title}”?`, 'Keep’s moderator will look at the circle’s name.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Report', style: 'destructive', onPress: async () => { const r = await reportCircle(code); Alert.alert(r?.ok ? 'Thanks for telling us' : 'Couldn’t reach Keep’s server', r?.ok ? 'We’ll take a look.' : 'Try again in a moment.'); } },
-  ]);
-
   return (
     <Shell>
       <Eyebrow>{title} · today</Eyebrow>
@@ -121,7 +115,6 @@ export default function Circle() {
         <Text style={styles.meta}>Code {code}</Text>
         <Button label="Invite someone" onPress={invite} />
         <Button ghost small label="Leave circle" onPress={leave} />
-        {!info.owner && <Pressable accessibilityRole="button" onPress={reportName} style={{ alignItems: 'center', paddingVertical: 4 }}><Text style={styles.meta}>Report this circle’s name</Text></Pressable>}
       </View>
     </Shell>
   );

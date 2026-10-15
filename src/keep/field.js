@@ -46,7 +46,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
   const G = useRef(null);
   const game = () => (G.current ??= {
     deckKey: cards ? 'everyday' : deck ?? deckNow(),
-    deck: cards ? cards.map((c) => ({ ...c })) : withMine(deal(SOLO_PER_WHY, rng, deck ?? deckNow()), mine, rng),
+    deck: cards ? cards.map((c) => ({ ...c })) : withMine(deal(SOLO_PER_WHY, rng, deck ?? deckNow(), true), mine, rng),
     live: [], kept: [], gone: [], swaps: [], flies: [], fx: [], pops: [], gt: 0, T: 0, scale: 1, next: 300, pending: null, over: false, field: starfield(W, H),
     calm: calmNow() ? 1.5 : 1,
     cometAt: rng() < 0.8 ? roundMs * (0.25 + rng() * 0.5) : null, combo: 0, bestCombo: 0, lastCatch: -1e9, comets: 0,
@@ -199,7 +199,7 @@ export function Field({ skies = [], onDone, roundMs = ROUND_MS, deck, who, cards
     const all = pts();
     const landed = g.kept.map((m, i) => (m.landed ? i : -1)).filter((i) => i >= 0);
     if (landed.length) drawConstellation(c, landed.map((i) => g.kept[i]), landed.map((i) => all[i]), { font: f.small, box: sky, T: g.T, bright: g.kept.length === BASKET && !g.flies.length });
-    else if (!g.flies.length) drawLines(c, ['your sky'], W / 2, sky.y + sky.h / 2 - 10, f.italic, 16, 0.35);
+    else if (!g.flies.length) drawLines(c, ['your sky'], W / 2, sky.y + sky.h / 2 - 10, f.accent, 16, 0.35);
     if (g.pending) landed.forEach((i, n) => drawStar(c, all[i].x, all[i].y, 6 + Math.sin(g.T * 0.008 + n) * 1.5, 0.5, true));
 
     // falling stars

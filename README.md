@@ -27,7 +27,7 @@ A solo round ends with **make one real**: a short reading (and how many rounds u
 
 Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names tonight's plan or the newest open moment.
 
-**First launch** (`/welcome`): eight scenes over one moving sky. The name; three slow stars to catch; what you get (play, your sky, one for real, together); the one slow question (which two whys matter most to you?); your star (something you love, which falls in your first drop and, if ticked, goes to the commons review queue); a deck; the daily reminder; go. Replay it from You.
+**First launch** (`/welcome`): eight scenes over one moving sky. The name; three slow stars to catch; what you get (play, your sky, one for real, together); the one slow question (which two whys matter most to you?); your star (something you love; it joins Your stars and falls in your first drop); a deck; the daily reminder; go. Replay it from You.
 
 **Your sky** layers every constellation like a star chart, then reads:
 - **What you said · what you grab**: the two whys you named on day one against your fastest grabs (after five drops).
@@ -38,9 +38,9 @@ Plans wait on the List tab; an opt-in **Tonight's star** nudge at 6pm names toni
 
 **You** (`/settings`, the round button on Home): name, theme, calm mode, reminder, deck, the intro again, and Your data: what stays on the phone, what goes to the server, back up / restore, delete my data from the server, erase everything.
 
-**Safety**: stars from players can be reported (results screen, commons board); people in Matches and Circles can be hidden or reported (••• by their name); circle owners can remove members; you can play again with someone without a link. Moderation is at lipurposefe.com/keep/admin. See `docs/commons-api.md`.
+**Privacy by design**: Keep never asks for anything typed about a person. Friends see a star name picked from a list (`src/keep/names.mjs`), circle names are picked from a list, and Your stars (moments you add) stay on the phone and never enter the daily drop or matches. The server enforces the lists. People in Matches and Circles can be hidden or reported (••• by their name); circle owners can remove members. Built-in stars can be taken down from lipurposefe.com/keep/admin. See `docs/commons-api.md`.
 
-**Decks**: Everyday, Campus, New city, With kids, Next chapter, Young (kids about 7–13). Same seven whys, moments written for a life stage. Chosen on first launch or from the home screen.
+**Decks**: Everyday, Campus, New city, With kids, Next chapter. Same seven whys, moments written for a life stage. Chosen on first launch or from the home screen.
 
 
 ## Who it's for, and what it does

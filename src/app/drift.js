@@ -38,7 +38,7 @@ function Field({ onDone }) {
   const game = () => {
     if (G.current) return G.current;
     // Ten moments from across the whys, set out in two loose columns.
-    const picks = deal(2, Math.random, deckNow()).slice(0, DRIFT.count);
+    const picks = deal(2, Math.random, deckNow(), true).slice(0, DRIFT.count);
     const fades = shuffle(fadeStarts());
     const rowH = (bottom - top) / 5;
     const stars = picks.map((m, i) => {

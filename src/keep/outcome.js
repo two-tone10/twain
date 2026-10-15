@@ -6,13 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { CUT_MS, WHY, fromPlayers } from './content.mjs';
+import { CUT_MS, WHY } from './content.mjs';
 import { cutPair, soloLines } from './insight.mjs';
 import { SAID_ROUNDS as PATTERN_ROUNDS } from './readings.mjs';
 import { WHENS, askAtFor, followUp, rememberPeople, withLabel } from './plans.mjs';
 import { drawConstellation, layout, record, useSkyFonts } from './sky';
 import { Button, Eyebrow, goHome, Reading, StillSky } from './ui';
-import { addToList, loadMyName, loadRounds, saveMyName } from '../lib/storage';
+import { addToList, loadMyName, loadRounds } from '../lib/storage';
 import { shareCard } from './share';
 import { fmtSpeed, rarity, shareText, skyLine, skyName } from './fun.mjs';
 import { dailyStats } from '../lib/commons';
@@ -56,7 +56,7 @@ function FinalCut({ pair, onDone }) {
       <SafeAreaView style={styles.cutWrap}>
         <Eyebrow>Final cut</Eyebrow>
         <Text style={styles.h2}>
-          Only one <Text style={{ color: C.gold, fontFamily: F.serifItalic }}>makes it.</Text>
+          Only one <Text style={{ color: C.gold, fontFamily: F.accent }}>makes it.</Text>
         </Text>
         <Text style={styles.sub}>If the day only had room for one.</Text>
         <View style={{ flex: 1 }} />
@@ -164,8 +164,6 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
 
   const lines = soloLines({ kept: g.kept, gone: g.gone, swaps: g.swaps, pair: g.pair, keeper: g.keeper ?? null }).slice(0, 3);
   const name = skyName(g.kept);
-  // Stars other players added, kept or not, so any of them can be reported.
-  const players = useMemo(() => [...new Set([...g.kept, ...(g.gone ?? [])].map((m) => m.t))].filter(fromPlayers), [g.kept, g.gone]);
   const heroH = 210;
   const hero = useMemo(() => {
     if (!fonts) return null;
@@ -178,8 +176,7 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
     const speed = g.speed != null ? fmtSpeed(g.speed) : null;
     try {
       if (g.day) {
-        if (me) await saveMyName(me.trim());
-        await shareCard('daily', { day: g.day, kept: g.kept, name, speed }, fonts, shareText({ day: g.day, kept: g.kept, speed: g.speed, who: me?.trim() }));
+        await shareCard('daily', { day: g.day, kept: g.kept, name, speed }, fonts, shareText({ day: g.day, kept: g.kept, speed: g.speed, who: me }));
       } else {
         await shareCard('round', { kept: g.kept, name, speed }, fonts, `${name} ✦ my sky in Keep`);
       }
@@ -218,11 +215,6 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
         </Pressable>
       )}
       {why && <View style={{ gap: 10 }}>{lines.map((l, i) => <Reading key={i} line={l} />)}</View>}
-      {players.length > 0 && (
-        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/report', params: { stars: JSON.stringify(players) } })} style={{ alignItems: 'center' }}>
-          <Text style={styles.small}>{players.length === 1 ? 'One star' : `${players.length} stars`} this round came from players · Report ›</Text>
-        </Pressable>
-      )}
       {played != null && played < PATTERN_ROUNDS && (
         <View style={{ alignItems: 'center', gap: 8 }}>
           <View style={styles.slots}>
@@ -230,9 +222,6 @@ function Reading1({ g, onNext, onAgain, againLabel }) {
           </View>
           <Text style={styles.hook}>{PATTERN_ROUNDS - played} more {PATTERN_ROUNDS - played === 1 ? 'drop' : 'drops'} to find your sign</Text>
         </View>
-      )}
-      {g.day && me != null && !me && (
-        <TextInput value={me} onChangeText={setMe} placeholder="Your name, so friends know who sent it" placeholderTextColor={C.faint} maxLength={20} style={styles.input} />
       )}
       <View style={{ flex: 1 }} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -324,7 +313,7 @@ const styles = StyleSheet.create({
   cutLose: { opacity: 0.15, transform: [{ scale: 0.95 }] },
   cutStar: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.star, shadowColor: C.glow, shadowOpacity: 1, shadowRadius: 8 },
   cutText: { fontFamily: F.serifRegular, fontSize: 27, lineHeight: 32, color: C.ink, textAlign: 'center' },
-  or: { textAlign: 'center', fontFamily: F.serifItalic, color: C.faint, fontSize: 16 },
+  or: { textAlign: 'center', fontFamily: F.accentSoft, color: C.faint, fontSize: 16 },
   track: { height: 3, borderRadius: 2, backgroundColor: C.line, overflow: 'hidden' },
   fill: { height: 3, backgroundColor: C.gold, width: '100%', transformOrigin: 'left' },
   results: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },

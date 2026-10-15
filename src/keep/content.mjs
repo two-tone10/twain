@@ -20,25 +20,24 @@ export const DECKS = [
   { key: 'city', name: 'New city', who: 'Just moved somewhere' },
   { key: 'kids', name: 'With kids', who: 'Parents, any age of kid' },
   { key: 'later', name: 'Next chapter', who: 'Retired, or nearly' },
-  { key: 'young', name: 'Young', who: 'Kids, about 7 to 13' },
-  { key: 'community', name: 'Community', who: 'Stars other players added' },
 ];
 export const DECK = Object.fromEntries(DECKS.map((d) => [d.key, d]));
 
 // Stars from the commons, added at runtime (see lib/commons.js). Never part of the daily.
-export const EXTRA = [];
-export const setExtra = (items) => { EXTRA.length = 0; EXTRA.push(...items); };
-export const deckReady = (key) => key !== 'community' || EXTRA.length >= 14;
+// Stars you added yourself (Your stars). They can fall in any deck, for you only, and never in the daily
+// drop or a match, which have to be the same on every phone.
+export const OWN = [];
+export const setOwn = (items) => { OWN.length = 0; OWN.push(...items.map((m) => ({ t: m.t, k: m.k, d: '*' }))); };
+export const isOwn = (t) => OWN.some((m) => m.t === t);
 // Stars the moderator took down (built-in or from players), plus any this phone reported. Never dealt.
 export const GONE = new Set();
 export const setGone = (texts) => { GONE.clear(); for (const t of texts) GONE.add(t); };
-// A star a player added, rather than one from Keep's own library.
-export const fromPlayers = (t) => EXTRA.some((m) => m.t === t);
 
-// Texts by why for one deck. A deck that's short on a why borrows from Everyday so rounds stay even.
-export function poolFor(deck = 'everyday', min = 4) {
+// Texts by why for one deck, plus your own stars when `own`. A deck that's short on a why borrows from Everyday.
+export function poolFor(deck = 'everyday', min = 4, own = false) {
   const by = Object.fromEntries(WHYS.map((w) => [w.key, []]));
-  for (const m of [...LIBRARY, ...EXTRA]) if (m.d === deck && by[m.k] && !GONE.has(m.t)) by[m.k].push(m.t);
+  for (const m of LIBRARY) if (m.d === deck && by[m.k] && !GONE.has(m.t)) by[m.k].push(m.t);
+  if (own) for (const m of OWN) if (by[m.k] && !by[m.k].includes(m.t)) by[m.k].push(m.t);
   if (deck !== 'everyday') {
     for (const m of LIBRARY) if (m.d === 'everyday' && by[m.k].length < min && !by[m.k].includes(m.t) && !GONE.has(m.t)) by[m.k].push(m.t);
   }

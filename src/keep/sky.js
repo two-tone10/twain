@@ -6,18 +6,18 @@ import { C } from '../lib/theme';
 
 export const FILES = {
   serif: require('@expo-google-fonts/bodoni-moda/500Medium/BodoniModa_500Medium.ttf'),
-  italic: require('@expo-google-fonts/bodoni-moda/400Regular_Italic/BodoniModa_400Regular_Italic.ttf'),
+  accent: require('@expo-google-fonts/raleway/600SemiBold/Raleway_600SemiBold.ttf'),
   sans: require('@expo-google-fonts/jost/500Medium/Jost_500Medium.ttf'),
 };
 
 export function useSkyFonts() {
   const label = useFont(FILES.serif, 17);
   const small = useFont(FILES.serif, 11);
-  const italic = useFont(FILES.italic, 13);
+  const accent = useFont(FILES.accent, 13);
   const caps = useFont(FILES.sans, 9);
   const title = useFont(FILES.serif, 28);
   const huge = useFont(FILES.serif, 40);
-  return label && small && italic && caps && title && huge ? { label, small, italic, caps, title, huge } : null;
+  return label && small && accent && caps && title && huge ? { label, small, accent, caps, title, huge } : null;
 }
 
 export const EMPTY = createPicture(() => {});

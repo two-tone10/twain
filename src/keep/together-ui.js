@@ -1,13 +1,14 @@
-// Shared pieces for Match and Circles: a small sky, the three-pick guess, a first-name gate,
+// Shared pieces for Match and Circles: a small sky, the three-pick guess, picking your star name,
 // and the hide / report / remove menu for a person.
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Canvas, Picture } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 import { drawColored, drawConstellation, layout, record, useSkyFonts } from './sky';
 import { skyPoint } from './insight.mjs';
 import { Button } from './ui';
 import { saveMyName } from '../lib/storage';
+import { anotherStar } from './names.mjs';
 import { hidePerson, removeMember, reportPerson } from '../lib/safety';
 import { C, F, R, S } from '../lib/theme';
 
@@ -57,15 +58,20 @@ export function GuessPicker({ options, onDone, label = 'Reveal' }) {
 }
 
 // Friends see your first name. Asked once, then remembered (also in Settings).
+// Before your first match or circle: the star name friends will see. Picked, never typed.
 export function NameGate({ name, onSaved }) {
-  const [v, setV] = useState(name ?? '');
+  const [v, setV] = useState(() => anotherStar(''));
   if (name) return null;
-  const save = async () => { const n = v.trim(); if (!n) return; await saveMyName(n); onSaved(n); };
+  const save = async () => { await saveMyName(v); onSaved(v); };
   return (
     <View style={styles.gate}>
-      <Text style={styles.gateT}>What should friends call you?</Text>
-      <TextInput value={v} onChangeText={setV} onSubmitEditing={save} placeholder="First name" placeholderTextColor={C.faint} maxLength={20} style={styles.input} returnKeyType="done" />
-      <Button small label="Save" disabled={!v.trim()} onPress={save} />
+      <Text style={styles.gateT}>Friends will see you as</Text>
+      <Text style={styles.star}>{v}</Text>
+      <Text style={styles.gateS}>A star name, so Keep never needs yours. Change it anytime in You.</Text>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Button small ghost label="Another" onPress={() => { Haptics.selectionAsync(); setV(anotherStar(v)); }} style={{ flex: 1 }} />
+        <Button small label={`Use ${v}`} onPress={save} style={{ flex: 1.4 }} />
+      </View>
     </View>
   );
 }
@@ -76,8 +82,9 @@ const styles = StyleSheet.create({
   optOn: { borderColor: C.gold, backgroundColor: C.accentWash },
   optT: { fontFamily: F.serif, fontSize: 15, color: C.dim },
   gate: { gap: 10, padding: S.md, borderRadius: R.xl, borderWidth: 1, borderColor: C.cardLine, backgroundColor: C.card },
-  gateT: { fontFamily: F.serif, fontSize: 18, color: C.ink },
-  input: { borderWidth: 1, borderColor: C.line, backgroundColor: C.inset, borderRadius: R.lg, paddingVertical: 11, paddingHorizontal: 12, color: C.ink, fontFamily: F.sans, fontSize: 16 },
+  gateT: { fontFamily: F.sans, fontSize: 14, color: C.dim },
+  gateS: { fontFamily: F.sans, fontSize: 13, lineHeight: 18, color: C.faint },
+  star: { fontFamily: F.serifRegular, fontSize: 34, color: C.gold },
 });
 
 // Hide, report, or (for a circle's owner) remove someone. `where` is { match: id } or { code, mid }.

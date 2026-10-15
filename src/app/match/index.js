@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.sky0 },
   wrap: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
-  em: { fontFamily: F.serifItalic, color: C.gold },
+  em: { fontFamily: F.accent, color: C.gold },
   sub: { fontFamily: F.sans, fontSize: 14, lineHeight: 20, color: C.dim },
   block: { gap: 4, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   pair: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
