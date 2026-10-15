@@ -1,6 +1,7 @@
 // Share cards: one look for every screen. Each card is drawn off screen at 360×450, scaled up 3×,
 // saved as a PNG and handed to the share sheet with a line of text (and a link, for the daily).
-import { Share } from 'react-native';
+import { Platform, Share } from 'react-native';
+import * as Sharing from 'expo-sharing';
 import { PaintStyle, Skia, TileMode } from '@shopify/react-native-skia';
 import { File, Paths } from 'expo-file-system';
 import { WHY } from './content.mjs';
@@ -113,5 +114,11 @@ export async function shareCard(type, data, fonts, message) {
   const file = new File(Paths.cache, `keep-${type}-${Date.now()}.png`);
   file.create({ overwrite: true });
   file.write(surface.makeImageSnapshot().encodeToBase64(), { encoding: 'base64' });
-  await Share.share({ url: file.uri, message });
+  // iOS shares the card and the words together. Android's share sheet takes one or the other: a message with a
+  // link (a challenge) goes as text so the link still works; anything else goes as the picture.
+  if (Platform.OS === 'android' && !/https?:\/\//.test(message ?? '')) {
+    await Sharing.shareAsync(file.uri, { mimeType: 'image/png', dialogTitle: message });
+    return;
+  }
+  await Share.share(Platform.OS === 'android' ? { message } : { url: file.uri, message });
 }

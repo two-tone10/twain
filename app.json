@@ -74,7 +74,8 @@
           ]
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "./plugins/gradle-memory.js"
     ],
     "scheme": "keep",
     "backgroundColor": "#05060f",
