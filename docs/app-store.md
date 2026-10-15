@@ -1,4 +1,6 @@
-# Keep: App Store listing
+# Keep: store listings
+
+The full kit (images, both stores' text, every data and rating answer) is published at https://claude.ai/artifact/XpiAErsXKVsNwMQc6s8oic. Images live in `store/` (made by `store/make.py` from release-build captures).
 
 Everything App Store Connect asks for, ready to paste. App: "Keep: Catch a Falling Star" (ASC id 6821652744), bundle `com.lipurposefe.keep`.
 
@@ -7,33 +9,35 @@ Everything App Store Connect asks for, ready to paste. App: "Keep: Catch a Falli
 - **Subtitle (30):** See what you really reach for
 
 ## Promotional text (170)
-Moments fall like stars. Catch five in 45 seconds and see what you actually reach for. Then make one real this week.
+Moments fall like stars. Catch five in under a minute and see what you really reach for. Then make one real this week.
 
 ## Description
-Keep is a 45-second game that shows you what you actually reach for.
+Keep is a 45-second game that shows you what you really reach for.
 
-Moments fall like stars: a slow coffee, dinner with old friends, a trail you’ve never tried. Tap the ones you’d keep. Your sky holds five. You don’t have time to think, and that’s the point. Your thumb answers before your inner critic does.
+Moments fall like stars: a slow coffee, dinner with old friends, a trail you've never tried. Tap the ones you'd keep. Your sky holds five. There's no time to overthink it, and that's the point. Your thumb answers before your inner critic does.
 
-Every round draws a constellation with a name, like The Restless Hearth or The Quiet Forge. There are 49 to find. Play a few rounds and you’ll find your sign.
+Every drop draws a constellation with its own name, like The Restless Hearth or The Quiet Forge. There are 49 to find. Play five drops and you'll find your sign.
 
 THEN MAKE ONE REAL
-After a round, pick one star that could happen this week, say when and with whom, and Keep checks back to ask how it went. Over time, Kept shows everything you’ve done, who was there, and how what you reach for changes.
+After a drop, pick one star that could actually happen this week. Say when, and who with. Keep checks back to ask how it went. Over time, Kept shows everything you did and how what you reach for changes.
 
 PLAY TOGETHER, ON YOUR OWN PHONES
-• Today’s drop: the same stars for everyone, once a day.
-• Match: send a drop to a friend. You each catch the same stars, guess three of the other’s five, and see how in sync you are.
-• Circles: a small group that plays the daily together. See each other’s skies once you’ve played, guess each other’s picks, and get a weekly card.
+• Today's drop: the same stars for everyone, once a day.
+• Match: send a drop to a friend. You each catch the same stars, guess three of each other's five, and see how in sync you are.
+• Circles: a small group that plays the daily together. See each other's skies once you've played, and get a weekly card.
 
 MORE WAYS TO PLAY
-• Drift: hold on to the stars you won’t let fade.
-• Slow drop: one drop across a whole day.
+• Drift: hold on to the stars you won't let fade.
+• Slow drop: one drop spread across a whole day.
 • Decks for where you are: Everyday, Campus, New city, With kids, Next chapter.
 • Your stars: add moments of your own. They fall only for you.
+• Four looks: Charcoal, Night Salon, Navy and Daylight.
 
-No account, no ads, and Keep never asks for your name. Friends see you as a star name you pick. Your history stays on your phone; only anonymous counts of what gets kept are shared.
+PRIVATE BY DESIGN
+No account, no ads, and Keep never asks for your name. Friends see you as a star name you pick, like Vega or Lyra. Your sky, list and plans stay on your phone. The only things that reach our server are anonymous counts of which stars get kept, plus your Match and Circles games. You can delete all of it from the app anytime.
 
 ## Keywords (100)
-self discovery,reflection,habits,mindful,daily,constellation,stars,personality,journal,game,values
+self discovery,reflection,habits,mindful,daily,constellation,stars,personality,values,friends,quiz
 
 ## URLs
 - Support: https://lipurposefe.com/keep/support
@@ -68,3 +72,12 @@ No player-written content reaches anyone else, so there's nothing to moderate:
 4. Sky: your sign.
 5. Kept: everything you did, plotted.
 6. A friend’s challenge: “2 of 5 the same.”
+
+## Google Play
+- **App name (30):** Keep: Catch a Falling Star
+- **Short description (80):** Catch falling moments in under a minute. See what you really reach for.
+- **Full description:** same as the App Store description above.
+- **Category:** Game → Casual. Free, no ads. Target audience 16–17 and 18+.
+- **Content rating (IARC):** Game; every content question No; no user interaction through voice, text, images or audio; no location sharing; no purchases.
+- **Data safety:** collects Device or other IDs (app functionality, fraud prevention/security), App interactions (app functionality), Other actions (Match/Circles play, optional, app functionality). None shared. Encrypted in transit. Deletion in the app. No accounts.
+- **Images:** `store/android/` (1080×1920), `store/feature-graphic-1024x500.png`, `store/icon-google-play-512.png`.
