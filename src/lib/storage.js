@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isStarName } from '../keep/names.mjs';
 
 export async function load(key, fallback = null) {
   try {
@@ -103,5 +104,10 @@ export async function saveDaily(day, result) {
   await save('keep:dailies', all);
 }
 
-export const loadMyName = () => load('keep:myname', '');
-export const saveMyName = (n) => save('keep:myname', n);
+// Your star name: what friends see you as. Picked from a list, never typed; anything else reads as unset.
+export const loadMyName = async () => { const n = await load('keep:myname', ''); return isStarName(n) ? n : ''; };
+export const saveMyName = (n) => (isStarName(n) ? save('keep:myname', n) : null);
+
+// Stars you added yourself. They fall only for you and never leave the phone.
+export const loadMyStars = () => load('keep:mystars', []);
+export const saveMyStars = (items) => save('keep:mystars', items);

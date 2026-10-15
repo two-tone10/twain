@@ -1,6 +1,7 @@
-// The commons: anonymous counts of what everyone keeps, the board, and stars players add.
+// The commons: anonymous counts of what everyone keeps, and the board. Nothing typed is ever sent.
 // Contract: docs/commons-api.md. Switched off until the backend's URL and key are set in EAS env.
 import { load, save } from './storage';
+import { isOwn } from '../keep/content.mjs';
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -31,11 +32,12 @@ export async function deviceId() {
   return device;
 }
 
-// Every star that fell this round, kept or not. Fire and forget.
+// Every star that fell this round, kept or not, except your own stars. Fire and forget.
 export async function logRound({ mode, deck, day = null, kept = [], gone = [] }) {
   if (!commonsOn) return;
   try {
-    const stars = [...kept.map((m) => ({ t: m.t, k: m.k, kept: true, dwell: m.dwell ?? null })), ...gone.filter((m) => !m.thrown).map((m) => ({ t: m.t, k: m.k, kept: false, dwell: null }))].slice(0, 30);
+    const shared = (m) => !isOwn(m.t);
+    const stars = [...kept.filter(shared).map((m) => ({ t: m.t, k: m.k, kept: true, dwell: m.dwell ?? null })), ...gone.filter((m) => !m.thrown && shared(m)).map((m) => ({ t: m.t, k: m.k, kept: false, dwell: null }))].slice(0, 30);
     await rpc('log_round', { p: { device: await deviceId(), mode, deck, day, stars } });
   } catch {}
 }
@@ -48,47 +50,27 @@ export async function commonsBoard() {
   try { return await rpc('commons_board', {}); } catch { return null; }
 }
 
-export async function submitStar({ t, k, deck = 'everyday' }) {
-  if (!commonsOn) return { ok: false, reason: 'offline' };
-  try { return await rpc('submit_star', { p: { device: await deviceId(), t, k, deck } }); } catch { return { ok: false, reason: 'offline' }; }
-}
-
-// The star you added in the intro: sent once; if the phone was offline, tried again on the next launch.
-export const holdStar = (star) => save('keep:pendingstar', star);
-export async function sendHeldStar() {
-  const star = await load('keep:pendingstar', null);
-  if (!star) return null;
-  const r = await submitStar(star);
-  if (r?.ok || (r?.reason && r.reason !== 'offline')) await save('keep:pendingstar', null);
-  return r;
-}
-
-// Stars from players, kept on the phone and brought up to date from the server's change feed:
-// approved ones join, hidden or removed ones leave (built-in stars can be removed too), restored ones return.
-// Stars this phone reported stay gone for it whatever happens.
-export async function syncCommunity() {
-  const c = await load('keep:stars', { since: '1970-01-01T00:00:00Z', items: [], gone: [] });
+// Built-in stars the moderator has taken down (or put back), from the server's change feed. They stop
+// falling on every phone. Stars this phone reported earlier stay gone for it.
+export async function syncGone() {
+  const c = await load('keep:gone', { since: '1970-01-01T00:00:00Z', gone: [] });
   const reported = await load('keep:reported', []);
   if (commonsOn) {
     try {
-      const items = new Map(c.items.map((m) => [m.t, m]));
       const gone = new Set(c.gone);
       for (let page = 0; page < 20; page++) {
         const fresh = (await rpc('community_changes', { p_since: c.since })) ?? [];
         for (const m of fresh) {
-          if (m.status === 'approved') { items.set(m.t, { t: m.t, k: m.k, d: 'community' }); gone.delete(m.t); }
-          else if (m.status === 'restored') gone.delete(m.t);
-          else { items.delete(m.t); gone.add(m.t); }
+          if (m.status === 'hidden' || m.status === 'removed') gone.add(m.t); else gone.delete(m.t);
           c.since = m.changed_at;
         }
         if (fresh.length < 500) break;
       }
-      c.items = [...items.values()];
       c.gone = [...gone];
-      await save('keep:stars', c);
+      await save('keep:gone', c);
     } catch {}
   }
-  return { items: c.items.filter((m) => !reported.includes(m.t)), gone: [...c.gone, ...reported] };
+  return [...c.gone, ...reported];
 }
 
 // A new id after the server forgets this phone, so nothing new links back to the old one.

@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.sky0 },
   wrap: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   sign: { fontFamily: F.serifRegular, fontSize: 48, lineHeight: 54, textAlign: 'center' },
-  line: { fontFamily: F.serifItalic, fontSize: 18, color: C.dim, textAlign: 'center' },
+  line: { fontFamily: F.accentSoft, fontSize: 18, color: C.dim, textAlign: 'center' },
   waiting: { alignItems: 'center', gap: 12, paddingVertical: S.lg },
   slots: { flexDirection: 'row', gap: 12 },
   slot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1, borderColor: C.ghost, borderStyle: 'dashed' },

@@ -9,8 +9,9 @@ export function shuffle(a, rng = Math.random) {
 }
 
 // Same number from every why, so no round leans one way before you touch it.
-export function deal(perWhy, rng = Math.random, deck = 'everyday') {
-  const pool = poolFor(deck, perWhy);
+// `own` mixes in your own stars; the daily drop and matches leave it off so every phone deals the same.
+export function deal(perWhy, rng = Math.random, deck = 'everyday', own = false) {
+  const pool = poolFor(deck, perWhy, own);
   return shuffle(WHYS.flatMap((w) => shuffle(pool[w.key], rng).slice(0, perWhy).map((t) => ({ t, k: w.key }))), rng);
 }
 

@@ -29,7 +29,7 @@ export default function Slow() {
   const begin = async (wantsReminders) => {
     const opts = quick ? { spanMs: 4 * 60e3, fallMs: 70e3 } : {};
     const notify = wantsReminders ? await allowReminders() : false;
-    const s = { ...slowSchedule(Date.now(), deal(SLOW.perWhy, Math.random, deckNow()), opts), seenMissed: 0, recorded: false, notify };
+    const s = { ...slowSchedule(Date.now(), deal(SLOW.perWhy, Math.random, deckNow(), true), opts), seenMissed: 0, recorded: false, notify };
     saveSlow(s);
     scheduleReminders(s);
     setNow(Date.now());
@@ -53,7 +53,7 @@ function Intro({ onStart }) {
         <Eyebrow>A slow drop</Eyebrow>
         <Text style={styles.h2}>
           One drop,{'\n'}
-          <Text style={{ color: C.gold, fontFamily: F.serifItalic }}>all day long.</Text>
+          <Text style={{ color: C.gold, fontFamily: F.accent }}>all day long.</Text>
         </Text>
         <Text style={styles.sub}>Fourteen moments fall across the next twelve hours. Each one takes about three hours to cross your screen. Look in now and then, or some will fall past while you’re away.</Text>
         <Text style={styles.sub}>Your sky still holds five.</Text>
@@ -124,11 +124,11 @@ function Day({ s, onChange }) {
     drawCaps(c, `Slow drop · ${cur.kept.length} of ${BASKET} kept`, 22, ins.top + 20, f.caps, C.gold, 0.95);
     const status = snap.next ? `Next star in ${fmtLeft(snap.next.spawnAt - now)}` : 'The last stars are falling';
     drawLines(c, [`${status}  ·  ends ${clock(cur.end)}`], W / 2, ins.top + 30, f.small, 14, 0.6);
-    if (away > 0 && T < 6000) drawLines(c, [`${away} fell past while you were away`], W / 2, ins.top + 48, f.italic, 16, Math.min(1, (6000 - T) / 1500), C.gold);
+    if (away > 0 && T < 6000) drawLines(c, [`${away} fell past while you were away`], W / 2, ins.top + 48, f.accent, 16, Math.min(1, (6000 - T) / 1500), C.gold);
 
     const pts = layout(cur.kept, geo.sky);
     if (cur.kept.length) drawConstellation(c, cur.kept, pts, { font: f.small, box: geo.sky, T });
-    else drawLines(c, ['your sky'], W / 2, geo.sky.y + geo.sky.h / 2 - 10, f.italic, 16, 0.35);
+    else drawLines(c, ['your sky'], W / 2, geo.sky.y + geo.sky.h / 2 - 10, f.accent, 16, 0.35);
 
     for (const m of snap.live) {
       const p = pos(m);

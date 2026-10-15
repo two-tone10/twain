@@ -1,9 +1,11 @@
-// Circles: small groups that share the daily drop. Create one, join with a code, or open one you're in.
+// Circles: small groups that share the daily drop. Create one (its name is picked from a list), join with a code,
+// or open one you're in.
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NameGate } from '../keep/together-ui';
+import { anotherCircle } from '../keep/names.mjs';
 import { Button, Eyebrow, StillSky, goHome } from '../keep/ui';
 import { commonsOn, createCircle, joinCircle, myCircles } from '../lib/together';
 import { loadMyName } from '../lib/storage';
@@ -12,13 +14,13 @@ import { C, F, R, S } from '../lib/theme';
 export default function Circles() {
   const [list, setList] = useState(null);
   const [name, setName] = useState(undefined);
-  const [newName, setNewName] = useState('');
+  const [newName, setNewName] = useState(() => anotherCircle(''));
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
   useFocusEffect(useCallback(() => { myCircles().then(setList); loadMyName().then(setName); }, []));
 
   const create = async () => {
-    const c = await createCircle(newName.trim() || 'My circle');
+    const c = await createCircle(newName);
     if (c?.code) router.push(`/circle/${c.code}`); else setMsg(c?.error === 'too_many' ? 'You’re in ten circles already.' : 'Couldn’t make it. Try again.');
   };
   const join = async () => {
@@ -53,7 +55,12 @@ export default function Circles() {
             <>
               <View style={styles.block}>
                 <Text style={styles.label}>START A CIRCLE</Text>
-                <TextInput value={newName} onChangeText={setNewName} placeholder="The family, the team, the roommates…" placeholderTextColor={C.faint} maxLength={30} style={styles.input} />
+                <View style={styles.pick}>
+                  <Text style={styles.pickT}>{newName}</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel="A different name" hitSlop={8} onPress={() => setNewName(anotherCircle(newName))}>
+                    <Text style={styles.another}>Another ›</Text>
+                  </Pressable>
+                </View>
                 <Button label="Create" onPress={create} />
               </View>
               <View style={styles.block}>
@@ -75,7 +82,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.sky0 },
   wrap: { paddingHorizontal: S.lg, paddingVertical: S.md, gap: S.md },
   h2: { fontFamily: F.serifRegular, fontSize: 30, lineHeight: 36, color: C.ink },
-  em: { fontFamily: F.serifItalic, color: C.gold },
+  em: { fontFamily: F.accent, color: C.gold },
   sub: { fontFamily: F.sans, fontSize: 14, lineHeight: 20, color: C.dim },
   block: { gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
@@ -83,5 +90,8 @@ const styles = StyleSheet.create({
   meta: { fontFamily: F.sans, fontSize: 13, color: C.faint },
   label: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 2.5, color: C.faint },
   input: { borderWidth: 1, borderColor: C.line, backgroundColor: C.inset, borderRadius: R.lg, paddingVertical: 12, paddingHorizontal: 14, color: C.ink, fontFamily: F.sans, fontSize: 16 },
+  pick: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 14, borderRadius: R.lg, borderWidth: 1, borderColor: C.line, backgroundColor: C.inset },
+  pickT: { fontFamily: F.serif, fontSize: 19, color: C.ink, flexShrink: 1 },
+  another: { fontFamily: F.sansMedium, fontSize: 13, color: C.gold },
   err: { fontFamily: F.sans, fontSize: 14, color: C.gold },
 });

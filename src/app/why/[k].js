@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   stat: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.line },
   label: { fontFamily: F.sans, fontSize: 14, color: C.dim },
   v: { fontFamily: F.sansMedium, fontSize: 14, color: C.ink, fontVariant: ['tabular-nums'] },
-  line: { fontFamily: F.serifItalic, fontSize: 18, lineHeight: 25, color: C.gold },
+  line: { fontFamily: F.accent, fontSize: 18, lineHeight: 25, color: C.gold },
   block: { gap: 2, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   try: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 11, gap: 12 },
   tryText: { flex: 1, fontFamily: F.serif, fontSize: 17, color: C.ink },

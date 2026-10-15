@@ -1,6 +1,7 @@
 // Small settings. The deck is read synchronously when a round is dealt, so it's kept in memory too.
 import { AccessibilityInfo } from 'react-native';
 import { load, save } from './storage';
+import { DECK } from '../keep/content.mjs';
 
 let deck = 'everyday';
 let calm = false;
@@ -10,6 +11,7 @@ export const calmNow = () => calm;
 
 export async function loadPrefs() {
   deck = await load('keep:deck', 'everyday');
+  if (!DECK[deck]) deck = 'everyday';
   const saved = await load('keep:calm', null);
   calm = saved ?? (await AccessibilityInfo.isReduceMotionEnabled().catch(() => false));
 }

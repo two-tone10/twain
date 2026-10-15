@@ -67,7 +67,7 @@ const CARDS = {
     pts.forEach((p, i) => i && c.drawLine(pts[i - 1][0], pts[i - 1][1], p[0], p[1], lp));
     pts.forEach(([x, y]) => drawStar(c, x, y, 4, 1, true));
     para(c, name, 22, 100, f.huge, PW - 44, 44);
-    text(c, line, 22, 140, f.italic, C.dim);
+    text(c, line, 22, 140, f.accent, C.dim);
   },
   // Kept: the running totals.
   kept: (c, f, { since, done, glad, people, sign }) => {
@@ -77,7 +77,7 @@ const CARDS = {
       text(c, String(n), x, 130, f.huge);
       drawCaps(c, l, x + 2, 152, f.caps, C.faint, 1, 'left', 1.6);
     });
-    if (sign) text(c, `${sign}, lately`, 22, 220, f.italic, C.gold);
+    if (sign) text(c, `${sign}, lately`, 22, 220, f.accent, C.gold);
   },
   // The week: how many skies, what you did, and the names you drew.
   week: (c, f, { rounds, done, glad, names, sign }) => {
@@ -88,7 +88,7 @@ const CARDS = {
       drawCaps(c, l, x + 2, 142, f.caps, C.faint, 1, 'left', 1.6);
     });
     names.slice(0, 4).forEach((n, i) => text(c, n, 22, 200 + i * 34, f.title, i ? C.dim : C.ink));
-    if (sign) text(c, `${sign}, lately`, 22, PH - 60, f.italic, C.gold);
+    if (sign) text(c, `${sign}, lately`, 22, PH - 60, f.accent, C.gold);
   },
   // Pass it around: everyone's constellation in one sky.
   family: (c, f, { players, line }) => {

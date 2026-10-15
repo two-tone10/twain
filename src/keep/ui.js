@@ -78,7 +78,7 @@ export const styles = StyleSheet.create({
   label: { fontFamily: F.sansBold, fontSize: 17 },
   eyebrow: { fontFamily: F.sansMedium, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase' },
   reading: { fontFamily: F.serifRegular, fontSize: 18, lineHeight: 25, color: C.ink },
-  em: { fontFamily: F.serifItalic, color: C.gold },
+  em: { fontFamily: F.accent, color: C.gold },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   chipText: { fontFamily: F.sans, fontSize: 12 },
