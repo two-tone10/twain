@@ -80,7 +80,7 @@ export default function Why() {
             </View>
           )}
           {added.length > 0 && <Text style={styles.note}>Added to your list.</Text>}
-          <Text style={styles.note}>No why counts for more than another.</Text>
+          <Text style={styles.note}>No pull counts for more than another.</Text>
           <Button ghost label="Back" onPress={goHome} />
         </ScrollView>
       </SafeAreaView>

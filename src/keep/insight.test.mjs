@@ -17,7 +17,7 @@ test('headline reads the basket without ranking any why', () => {
   assert.equal(headline([]), 'You let everything fall.');
   assert.equal(headline([m('a', 'company'), m('b', 'company'), m('c', 'company'), m('d', 'skill')]), 'You kept the moments with people in them.');
   assert.equal(headline([m('a', 'taste'), m('b', 'company'), m('c', 'taste'), m('d', 'company'), m('e', 'skill')]), 'You kept company and taste, two of each.');
-  assert.equal(headline([m('a', 'taste'), m('b', 'company'), m('c', 'skill')]), '3 keeps, 3 different whys.');
+  assert.equal(headline([m('a', 'taste'), m('b', 'company'), m('c', 'skill')]), '3 keeps, 3 different pulls.');
   assert.equal(headline([m('a', 'taste'), m('b', 'taste')]), 'You leaned toward taste.');
 });
 
