@@ -5,7 +5,7 @@ Account-wide plan and vocabulary rules: `two-tone10/purpose-platform` → `docs/
 
 ## Before sending (every box must be ticked; the letter claims these were done)
 
-- [ ] **"whys" → "pulls" in every user-facing string.** Aliis owns "whys". Known spots: insight headline in `src/keep/insight.mjs` ("N different whys"), why pages `src/app/why/[k].js` (title, "No why counts for more than another"), `src/app/decks.js` ("Every deck carries all seven whys"), Sky / results labels, onboarding, store description and screenshots. Keys and route names (`why/[k]`, `whys` fields) may stay; only visible text changes. Update `src/keep/insight.test.mjs` expectations.
+- [x] **"whys" → "pulls" in every user-facing string.** Done in 467ed92 (in-app only; check store copy and screenshots too). Aliis owns "whys". Known spots: insight headline in `src/keep/insight.mjs` ("N different whys"), why pages `src/app/why/[k].js` (title, "No why counts for more than another"), `src/app/decks.js` ("Every deck carries all seven whys"), Sky / results labels, onboarding, store description and screenshots. Keys and route names (`why/[k]`, `whys` fields) may stay; only visible text changes. Update `src/keep/insight.test.mjs` expectations.
 - [ ] **No other app's words** in UI or store text: no "lens", "worth it", "purpose" as a headline, "reflection", "journal".
 - [ ] **New keywords** (see ACCOUNT_CLEANUP.md): `game,stars,party game,friends,couples,personality,icebreaker,quiz,constellation,self discovery`
 - [ ] **External TestFlight round done** (link https://testflight.apple.com/join/WQs4xPuV); question 4 rewritten with real tester feedback and the changes it led to.
