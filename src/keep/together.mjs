@@ -105,6 +105,6 @@ export function weekAwards(members, plays, guesses) {
   if (closest && Object.keys(pairSync).length > 0) rows.push(['Closest pair', `${closest.k.split('|').map((m) => nameOf[m] ?? '?').join(' & ')} · ${Math.round(closest.s)}%`]);
   if (reader) rows.push(['Best reader', `${nameOf[reader[0]] ?? '?'} · ${reader[1].c} of ${reader[1].of}`]);
   if (surprising && Object.keys(personSync).length > 2) rows.push(['Most surprising', nameOf[surprising.m] ?? '?']);
-  if (top) rows.push(['Circle why', WHY[top].name]);
+  if (top) rows.push(['Circle pull', WHY[top].name]);
   return rows;
 }

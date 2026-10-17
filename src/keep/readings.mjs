@@ -101,7 +101,7 @@ export function whyStats(k, { rounds = [], holds = [], list = [] }) {
   if (asked.length >= 2 && glad === asked.length) line = 'When you do these, you’re glad every time. Keep a little more of it on your list?';
   else if (grabs.length >= 3 && !did.length) line = 'You catch these often but haven’t brought one into a day yet.';
   else if (did.length >= 2 && did.length >= grabs.length) line = 'You do these more often than you grab them. They might matter more than your gut says.';
-  else if (!grabs.length && !held && !did.length) line = 'You haven’t kept one of these yet. That’s fine. Not every why has to be yours.';
+  else if (!grabs.length && !held && !did.length) line = 'You haven’t kept one of these yet. That’s fine. Not every pull has to be yours.';
 
   return { grabbed: grabs.length, firsts, held, done: did.length, glad, asked: asked.length, mine: uniq(grabs.concat(did), 5), line };
 }

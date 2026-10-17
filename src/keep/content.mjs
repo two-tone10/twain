@@ -1,6 +1,6 @@
 import { LIBRARY } from './library.mjs';
 
-// The seven whys. Order matters: each why owns a strip of sky, left to right.
+// The seven pulls (shown to players as "pulls"; code still says why/WHYS). Order matters: each pull owns a strip of sky, left to right.
 export const WHYS = [
   { key: 'delight', about: 'Moments that simply feel good. No reason needed.', name: 'Delight', color: '#ef8f9f', line: 'You kept what simply feels good.' },
   { key: 'setting', about: 'Moments where the place is the point.', name: 'Setting', color: '#d9b26a', line: 'You kept the places.' },

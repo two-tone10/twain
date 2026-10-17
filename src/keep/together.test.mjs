@@ -52,7 +52,7 @@ test('weekly awards for a circle', () => {
   assert.equal(rows['Closest pair'], 'Mom & Lila · 75%');
   assert.equal(rows['Best reader'], 'Mom · 2 of 3');
   assert.equal(rows['Most surprising'], 'Grandpa');
-  assert.ok(rows['Circle why']);
+  assert.ok(rows['Circle pull']);
 });
 
 test('star names and circle names come only from the lists', async () => {

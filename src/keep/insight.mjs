@@ -30,7 +30,7 @@ export function headline(kept) {
   const top = counts(kept);
   if (top[0][1] >= 3) return WHY[top[0][0]].line;
   if (top.length >= 2 && top[0][1] === 2 && top[1][1] === 2) return `You kept ${whyName(top[0][0])} and ${whyName(top[1][0])}, two of each.`;
-  if (top.length === kept.length && kept.length > 2) return `${kept.length} keeps, ${kept.length} different whys.`;
+  if (top.length === kept.length && kept.length > 2) return `${kept.length} keeps, ${kept.length} different pulls.`;
   return `You leaned toward ${whyName(top[0][0])}.`;
 }
 
